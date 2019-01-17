@@ -11,13 +11,15 @@ class TestIterator2(unittest.TestCase):
     # ====================
     def test_next(self):
         it = iter2([1, 2])
-        with self.subTest('next-protocol'):
+        with self.subTest('next-protocol returns next item'):
             self.assertEqual(next(it), 1)
-        with self.subTest('next-method'):
-            self.assertEqual(it.next(), 2)
+        with self.subTest('next-method returns Option2'):
+            self.assertEqual(it.next().unwrap(), 2)
         with self.subTest('StopIteration on empty iterator'):
             with self.assertRaises(StopIteration):
-                it.next()
+                next(it)
+        with self.subTest('None2 from empty iterator w/ `.next`'):
+            self.assertEqual(it.next(), iter2.none)
 
     # =================================
     # Processing "sequence -> sequence"
@@ -39,8 +41,18 @@ class TestIterator2(unittest.TestCase):
                 (100500, 2, 1, 1)
             )
 
-    def test_collapse(self):
-        pass
+    def test_difference(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2((1, 3, 6)).difference().to_tuple(),
+                (1, 2, 3)
+            )
+
+        with self.subTest('custom func'):
+            self.assertEqual(
+                iter2((1, 2, 6)).difference(lambda x, y: x / y).to_tuple(),
+                (1, 2, 3)
+            )
 
     def test_enumerate(self):
         with self.subTest('default enumerate: from 0'):
@@ -122,10 +134,6 @@ class TestIterator2(unittest.TestCase):
     # =============
     # Making groups
     # =============
-    def test_batching(self):
-        'Not implemented'
-        pass
-
     def test_chunks(self):
         with self.subTest('default'):
             self.assertEqual(
@@ -142,9 +150,35 @@ class TestIterator2(unittest.TestCase):
                 ((1, 2), (3, 4), (5,))
             )
 
+    def test_chunks_with_padding(self):
+        with self.subTest('default'):
+            self.assertEqual(
+                iter2([1, 2, 3]).chunks_with_padding(2).to_tuple(),
+                ((1, 2), (3, None))
+            )
+        with self.subTest('w/ fillvalue'):
+            self.assertEqual(
+                iter2([1, 2, 3]).chunks_with_padding(2, fillvalue=100500).to_tuple(),
+                ((1, 2), (3, 100500))
+            )
+        with self.subTest('w/o remainder'):
+            self.assertEqual(
+                iter2([1, 2, 3, 4]).chunks_with_padding(2).to_tuple(),
+                ((1, 2), (3, 4))
+            )
+
     def test_consecutive_groups(self):
-        # TODO: implement
-        pass
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2([1, 2, 10, 11, 100, 101]).consecutive_groups().map(tuple).to_tuple(),
+                ((1, 2), (10, 11), (100, 101))
+            )
+
+        with self.subTest('custom `ordering`'):
+            self.assertEqual(
+                iter2('abcBCDcde').consecutive_groups(ordering=ord).map(tuple).to_tuple(),
+                (('a', 'b', 'c'), ('B', 'C', 'D'), ('c', 'd', 'e'))
+            )
 
     def test_dedup(self):
         self.assertEqual(
@@ -170,30 +204,33 @@ class TestIterator2(unittest.TestCase):
                 ((1, 1), (0, 2), (1, 3))
             )
 
-    def test_group_by_and_transform(self):
-        self.assertEqual(
-            iter2('AaaABbBCc')
-                .group_by_and_transform(keyfunc=str.lower, valuefunc=str.upper)
-                .starmap(lambda k, v: (k, v.join('')))
-                .to_tuple(),
-            (('a', 'AAAA'), ('b', 'BBB'), ('c', 'CC'))
-        )
+    def test_process_in_groups(self):
+        materialize = lambda pair: (pair[0], tuple(pair[1]))
 
-    def test_grouper(self):
-        with self.subTest('default'):
+        with self.subTest('"group_by"'):
             self.assertEqual(
-                iter2([1, 2, 3]).grouper(2).to_tuple(),
-                ((1, 2), (3, None))
+                (iter2([1, 2, 2, 3, 3, 3])
+                    .process_in_groups(key=lambda x: x % 2)
+                    .map(materialize)
+                    .to_tuple()),
+                ((1, (1,)), (0, (2, 2)), (1, (3, 3, 3)))
             )
-        with self.subTest('w/ fillvalue'):
+
+        with self.subTest('w/ transformation'):
             self.assertEqual(
-                iter2([1, 2, 3]).grouper(2, fillvalue=100500).to_tuple(),
-                ((1, 2), (3, 100500))
+                (iter2([1, 2, 2, 3, 3, 3])
+                    .process_in_groups(transformation=lambda x: x % 2)
+                    .map(materialize)
+                    .to_tuple()),
+                ((1, (1,)), (2, (0, 0)), (3, (1, 1, 1)))
             )
-        with self.subTest('w/o remainder'):
+
+        with self.subTest('w/ aggregator'):
             self.assertEqual(
-                iter2([1, 2, 3, 4]).grouper(2).to_tuple(),
-                ((1, 2), (3, 4))
+                (iter2([1, 2, 2, 3, 3, 3])
+                    .process_in_groups(aggregator=sum)
+                    .to_tuple()),
+                ((1, 1), (2, 4), (3, 9))
             )
 
     # ===========
@@ -252,6 +289,37 @@ class TestIterator2(unittest.TestCase):
         self.assertEqual(t.to_tuple(), (2, 4))
         self.assertEqual(f.to_tuple(), (1, 3, 5))
 
+    def test_split_after(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2('192.168.0.1')
+                    .split_after(lambda c: c == '.')
+                    .map(tuple)
+                    .to_tuple()),
+                tuple(map(tuple, ('192.', '168.', '0.', '1')))
+            )
+
+    def test_split_at(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2('192.168.0.1')
+                    .split_at(lambda c: c == '.')
+                    .map(tuple)
+                    .to_tuple()),
+                tuple(map(tuple, ('192', '168', '0', '1')))
+            )
+
+    def test_split_before(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2('192.168.0.1')
+                    .split_before(lambda c: c == '.')
+                    .map(tuple)
+                    .to_tuple()),
+                tuple(map(tuple, ('192', '.168', '.0', '.1')))
+            )
+
+
     def test_permutations(self):
         with self.subTest('default'):
             self.assertEqual(
@@ -262,15 +330,11 @@ class TestIterator2(unittest.TestCase):
             )
         with self.subTest('pairs'):
             self.assertEqual(
-                iter2([1, 2, 3]).permutations(repeat=2).to_tuple(),
+                iter2([1, 2, 3]).permutations(length=2).to_tuple(),
                 ((1, 2), (1, 3),
                  (2, 1), (2, 3),
                  (3, 1), (3, 2))
             )
-
-    def test_roundrobin(self):
-        # TODO: implement
-        pass
 
     def test_stagger(self):
         with self.subTest('default'):
@@ -341,31 +405,23 @@ class TestIterator2(unittest.TestCase):
     # =================
     # Flow manipulation
     # =================
-    def test_adjacent(self):
-        pass
-
     def test_chain(self):
-        with self.subTest('chain two rich iterators'):
+        with self.subTest('chain rich iterators'):
             self.assertEqual(
-                iter2([1, 2, 3]).chain(iter2([4, 5])).to_tuple(),
-                (1, 2, 3, 4, 5)
+                iter2([1, 2, 3]).chain(iter2([4, 5]), iter2([6, 7])).to_tuple(),
+                (1, 2, 3, 4, 5, 6, 7)
             )
         with self.subTest('chain with iterable'):
             self.assertEqual(
-                iter2([1, 2, 3]).chain([4, 5]).to_tuple(),
-                (1, 2, 3, 4, 5)
+                iter2([1, 2, 3]).chain([4, 5], [6, 7]).to_tuple(),
+                (1, 2, 3, 4, 5, 6, 7)
             )
 
-    def test_concat(self):
-        with self.subTest('concat two rich iterators'):
+    def test_chain_from_iterable(self):
+        with self.subTest('simple'):
             self.assertEqual(
-                iter2([1, 2, 3]).concat(iter2([4, 5])).to_tuple(),
-                (1, 2, 3, 4, 5)
-            )
-        with self.subTest('concat with iterable'):
-            self.assertEqual(
-                iter2([1, 2, 3]).concat([4, 5]).to_tuple(),
-                (1, 2, 3, 4, 5)
+                iter2([1, 2, 3]).chain_from_iterable([(4, 5), (6, 7)]).to_tuple(),
+                (1, 2, 3, 4, 5, 6, 7)
             )
 
     def test_consume(self):
@@ -404,22 +460,54 @@ class TestIterator2(unittest.TestCase):
     def test_last(self):
         self.assertEqual(iter2([1, 2, 3]).last().unwrap(), 3)
 
+    def test_locate(self):
+        with self.subTest('w/o items'):
+            self.assertEqual(
+                iter2('aBcDe').locate(str.isupper, count_from=1).to_tuple(),
+                (2, 4)
+            )
+
+        with self.subTest('w/ items'):
+            self.assertEqual(
+                iter2('aBcDe').locate(str.isupper, count_from=1, with_items=True).to_tuple(),
+                ((2, 'B'), (4, 'D'))
+            )
+
+        with self.subTest('not found'):
+            self.assertEqual(
+                iter2('abcde').locate(str.isupper, count_from=1).to_tuple(),
+                ()
+            )
+
     def test_nth(self):
-        it = iter2([1, 2, 3])
-        with self.subTest('Valid indexes'):
-            self.assertEqual(it.nth(1), 2)
-            self.assertEqual(it.nth(0), 3)
-        with self.subTest('Invalid index'):
-            with self.assertRaises(IndexError):
-                _ = it.nth(0)
+        with self.subTest('found'):
+            self.assertEqual(
+                iter2([1, 2, 3]).nth(1).unwrap(),
+                2
+            )
+        with self.subTest('not found'):
+            self.assertTrue(
+                iter2([1, 2, 3]).nth(10).is_none()
+            )
 
     def test_position(self):
-        # TODO: implement
-        pass
+        with self.subTest('found'):
+            self.assertEqual(
+                iter2('aBcDe').position(str.isupper, count_from=1).unwrap(),
+                2
+            )
+
+        with self.subTest('not found'):
+            self.assertTrue(
+                iter2('abcde').position(str.isupper, count_from=1).is_none()
+            )
 
     def test_prepend(self):
-        # TODO: implement
-        pass
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2([3, 4]).prepend([1, 2]).to_tuple(),
+                (1, 2, 3, 4)
+            )
 
     def test_cycle(self):
         with self.subTest('repeat forever in cycle'):
@@ -532,18 +620,6 @@ class TestIterator2(unittest.TestCase):
                 iter2([2, 3]).take(2).to_tuple(),
                 (2, 3)
             )
-        with self.subTest('consuming order DOES matter'):
-            it = iter2([4, 5])
-            sub_it_4 = it.take()  # expected to take `4`
-            sub_it_5 = it.take()  # expected to take `5`
-            self.assertEqual(
-                sub_it_5.to_tuple(),  # really consumed (`4`)
-                (4,)
-            )
-            self.assertEqual(
-                sub_it_4.to_tuple(),  # really consumed (`5`)
-                (5,)
-            )
         with self.subTest('result may be insufficient'):
             self.assertEqual(
                 iter2([1, 2, 3]).take(10).to_tuple(),
@@ -553,53 +629,29 @@ class TestIterator2(unittest.TestCase):
     def test_take_now(self):
         with self.subTest('default'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_now().collect(),
+                iter2([1, 2, 3]).take_now(),
                 (1,)
             )
         with self.subTest('take pair'):
             self.assertEqual(
-                iter2([2, 3]).take_now(2).collect(),
+                iter2([2, 3]).take_now(2),
                 (2, 3)
-            )
-        with self.subTest('consuming order DOES NOT matter'):
-            it = iter2([4, 5])
-            sub_it_4 = it.take_now()  # expected to take `4`
-            sub_it_5 = it.take_now()  # expected to take `5`
-            self.assertEqual(
-                sub_it_5.to_tuple(),  # really consumed (`5`)
-                (5,)
-            )
-            self.assertEqual(
-                sub_it_4.to_tuple(),  # really consumed (`4`)
-                (4,)
             )
         with self.subTest('result may be insufficient'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_now(10).collect(),
+                iter2([1, 2, 3]).take_now(10),
                 (1, 2, 3)
             )
 
     def test_take_into_option(self):
         with self.subTest('default'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_into_option().unwrap().to_tuple(),
+                iter2([1, 2, 3]).take_into_option().unwrap(),
                 (1,)
             )
         with self.subTest('take pair'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_into_option(2).unwrap().to_tuple(),
-                (1, 2)
-            )
-        with self.subTest('consuming order does not matter'):
-            it = iter2([1, 2, 3, 4])
-            sub_it_1_2 = it.take_into_option(2)
-            sub_it_3_4 = it.take_into_option(2)
-            self.assertEqual(
-                sub_it_3_4.unwrap().to_tuple(),
-                (3, 4)
-            )
-            self.assertEqual(
-                sub_it_1_2.unwrap().to_tuple(),
+                iter2([1, 2, 3]).take_into_option(2).unwrap(),
                 (1, 2)
             )
         with self.subTest('None2 if insufficient'):
@@ -610,7 +662,7 @@ class TestIterator2(unittest.TestCase):
             it = iter2([1, 2])
             self.assertTrue(it.take_into_option(3).is_none())
             self.assertEqual(
-                it.take_into_option(2).unwrap().to_tuple(),
+                it.take_into_option(2).unwrap(),
                 (1, 2)
             )
 
@@ -629,44 +681,46 @@ class TestIterator2(unittest.TestCase):
     def test_take_last_into_option(self):
          with self.subTest('default'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_last_into_option().unwrap().to_tuple(),
+                iter2([1, 2, 3]).take_last_into_option().unwrap(),
                 (3,)
             )
          with self.subTest('take pair'):
             self.assertEqual(
-                iter2([1, 2, 3]).take_last_into_option(2).unwrap().to_tuple(),
+                iter2([1, 2, 3]).take_last_into_option(2).unwrap(),
                 (2, 3)
             )
          with self.subTest('if insufficient then return back taken items to iterator'):
             it = iter2([1, 2])
             self.assertTrue(it.take_last_into_option(3).is_none())
             self.assertEqual(
-                it.take_last_into_option(2).unwrap().to_tuple(),
+                it.take_last_into_option(2).unwrap(),
                 (1, 2)
             )
+
+    def test_take_last_now(self):
+        with self.subTest('default'):
+            self.assertEqual(
+                iter2([1, 2, 3]).take_last_now(),
+                (3,)
+            )
+        with self.subTest('take pair'):
+            self.assertEqual(
+                iter2([1, 2, 3]).take_last_now(2),
+                (2, 3)
+            )
+
 
     def test_take_while(self):
         with self.subTest('default: do not keep border element'):
             it = iter2([1, 2, 3, 4, 5])
             self.assertEqual(
-                it.take_while(lambda x: x < 3).to_tuple(),
+                it.ref().take_while(lambda x: x < 3).to_tuple(),
                 (1, 2)
             )
             # `3` was consumed and not placed back
             self.assertEqual(
-                it.to_tuple(),
+                it.ref().to_tuple(),
                 (4, 5)
-            )
-        with self.subTest('keep border element'):
-            it = iter2([1, 2, 3, 4, 5])
-            self.assertEqual(
-                it.take_while(lambda x: x < 3, keep_border_element=True).to_tuple(),
-                (1, 2)
-            )
-            # `3` was consumed, but placed back
-            self.assertEqual(
-                it.to_tuple(),
-                (3, 4, 5)
             )
 
     def test_unique(self):
@@ -699,29 +753,6 @@ class TestIterator2(unittest.TestCase):
                     iter2(input).collect(factory),
                     output
                 )
-
-    def test_collect_recursive(self):
-        with self.subTest('default: alias for `collect`'):
-            self.assertEqual(
-                iter2([1, 2, 3]).collect_recursive(tuple),
-                iter2([1, 2, 3]).to_tuple(),
-            )
-
-        with self.subTest('recursive: 2 levels'):
-            self.assertEqual(
-                iter2([
-                    iter2([1, 2]),
-                    iter2([3, 4]),
-                    iter2([5, 6]),
-                ]).collect_recursive(tuple, levels=2),
-                ((1, 2), (3, 4), (5, 6))
-            )
-
-    def test_make_sized(self):
-        self.assertEqual(
-            iter2([1, 2, 3]).make_sized(list).collect(list),
-            [1, 2, 3]
-        )
 
     # ===========
     # Duplication
@@ -836,12 +867,12 @@ class TestIterator2(unittest.TestCase):
         with self.subTest('empty'):
             self.assertEqual(
                 iter2([]).minmax(),
-                (None, None)
+                None
             )
         with self.subTest('empty with default'):
             self.assertEqual(
                 iter2([]).minmax(default=100500),
-                (100500, 100500)
+                100500
             )
         with self.subTest('regular, w/o key'):
             self.assertEqual(
@@ -878,7 +909,7 @@ class TestIterator2(unittest.TestCase):
         with self.subTest('default :: sufficient'):
             it = iter2([1, 2, 3])
             self.assertEqual(
-                it.spy(2).unwrap().to_tuple(),
+                it.spy(2).unwrap(),
                 (1, 2)
             )
             self.assertEqual(it.to_tuple(), (1, 2, 3))
@@ -888,9 +919,9 @@ class TestIterator2(unittest.TestCase):
             self.assertEqual(it.to_tuple(), (1, 2, 3))
         with self.subTest('partial :: sufficient'):
             it = iter2([1, 2, 3])
-            self.assertEqual(it.spy(2, allow_partial=True).to_tuple(), (1, 2))
+            self.assertEqual(it.spy(2, allow_partial=True).unwrap(), (1, 2))
             self.assertEqual(it.to_tuple(), (1, 2, 3))
         with self.subTest('partial :: insufficient'):
             it = iter2([1, 2, 3])
-            self.assertEqual(it.spy(4, allow_partial=True).to_tuple(), (1, 2, 3))
+            self.assertEqual(it.spy(4, allow_partial=True).unwrap(), (1, 2, 3))
             self.assertEqual(it.to_tuple(), (1, 2, 3))

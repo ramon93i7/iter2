@@ -19,6 +19,7 @@ algorithms_take_while = algorithms.sequence_to_sequence.take_while
 algorithms_group_by = algorithms.sequence_to_groups.group_by
 algorithms_process_in_groups = algorithms.sequence_to_groups.process_in_groups
 algorithms_position = algorithms.searching.position
+algorithms_chain_from_iterable = algorithms.merging.chain_from_iterable
 
 itertools_chain = itertools.chain
 itertools_islice = itertools.islice
@@ -276,7 +277,7 @@ class Iterator2:
         (True, (1, 2))
         '''
         taken = self.take_now(number)
-        if taken.length() == number:
+        if len(taken) == number:
             return Some2(taken)
         else:
             self._iterator = iter(taken)  # returns back, `taken` contains all items *before* take-call
@@ -303,8 +304,8 @@ class Iterator2:
         >>> it = Iterator2([1, 2, 3]); (it.take_into_option(4).is_none(), it.take_into_option(2).unwrap())
         (True, (1, 2))
         '''
-        taken = self.take_last(number)
-        if taken.length() == number:
+        taken = self.take_last_now(number)
+        if len(taken) == number:
             return Some2(taken)
         else:
             self._iterator = iter(taken)  # returns back, `taken` contains all items *before* take-call
@@ -312,20 +313,21 @@ class Iterator2:
 
     @derived_from(algorithms.sequence_to_sequence.take_while)
     def take_while(self, predicate):
+        # TODO: keep border element
         pass
 
     # ===================
     # Checking conditions
     # ===================
-    @derived_from(algorithms.predicate_on_sequence.all)
+    @derived_from(algorithms.predicate_on_sequence.all, wrap_into_iterator=False)
     def all(self, predicate):
         pass
 
-    @derived_from(algorithms.predicate_on_sequence.any)
+    @derived_from(algorithms.predicate_on_sequence.any, wrap_into_iterator=False)
     def any(self, predicate):
         pass
 
-    @derived_from(algorithms.predicate_on_sequence.none)
+    @derived_from(algorithms.predicate_on_sequence.none, wrap_into_iterator=False)
     def none(self, predicate):
         pass
 
@@ -360,7 +362,7 @@ class Iterator2:
         return Iterator2(self.raw())
 
     @derived_from(algorithms.sequence_to_groups.permutations)
-    def permutations(self, repeat=None):
+    def permutations(self, length=None):
         pass
 
     @derived_from(algorithms.sequence_to_groups.sliding_window)
@@ -379,9 +381,20 @@ class Iterator2:
     def chain(self, *others):
         pass
 
-    @derived_from(algorithms.merging.chain_from_iterable)
     def chain_from_iterable(self, others_in_iterable):
-        pass
+        '''
+        Returns a new iterable yielding items from base iterator and then from `other_in_iterable`, iterable by iterable.
+        This is the same as `chain` but consumes iterables from another iterable.
+
+        :param others_in_iterable:
+        :return:  chained iterables as new iterable
+
+        Example:
+        >>> Iterator2('ab').chain_from_iterable(['cd', 'ef'])).to_list()
+        ['a', 'b', 'c', 'd', 'e', 'f']
+        '''
+        return Iterator2(itertools_chain(self.raw(), algorithms_chain_from_iterable(others_in_iterable)))
+
 
     @derived_from(algorithms.merging.interleave)
     def interleave(self, *others):
@@ -462,14 +475,20 @@ class Iterator2:
         return self.next()
 
     def last(self):
-        return self.take_last_into_option(1)
+        return self.take_last(1).next()
 
     @derived_from(algorithms.searching.locate)
     def locate(self, predicate, *, count_from=0):
         pass
 
     def nth(self, index):
-        return Iterator2(itertools_islice(self._iterator, index, index + 1)).next()
+        '''
+        Returns `iter2.option.Some2` with `index`-item or `iter2.option.None2` if it doesn't exist.
+
+        :param index:
+        :return: iter2.option.Option2
+        '''
+        return Iterator2(itertools_islice(self.raw(), index, index + 1)).next()
 
     @based_on(algorithms.searching.position)
     def position(self, predicate, *, count_from=0):
@@ -533,7 +552,7 @@ class Iterator2:
     # =======
     def apply(self, func):
         '''
-        Uses iterator as an argument for `func.
+        Uses iterator as an argument for `func`.
 
         :param func:
         :return:
