@@ -7,7 +7,7 @@ with open("README.md", "r") as readme_file:
 
 setuptools.setup(
     name='iter2',
-    version='1.0',
+    version='1.1',
     description='Implementation of some rich-iterator concept',
     author='Shemyakin Roman',
     author_email='ramon93i7@gmail.com',
