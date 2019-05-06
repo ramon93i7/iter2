@@ -72,6 +72,13 @@ class TestIterator2(unittest.TestCase):
             (1,)
         )
 
+    def test_filter_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2([(1, 2), (3, 4)]).filter_t(lambda x, y: x + y < 5).to_tuple(),
+                ((1, 2),)
+            )
+
     def test_filter_builtin_none(self):
         self.assertEqual(
             iter2([0, 1, None, 3, '', {}, set()]).filter_builtin_none().to_tuple(),
@@ -90,6 +97,13 @@ class TestIterator2(unittest.TestCase):
             (1,) * (1+2+3)
         )
 
+    def test_flatmap_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2([(1, 2), (3, 4)]).flatmap_t(lambda x, y: (y, x)).to_tuple(),
+                (2, 1, 4, 3)
+            )
+
     def test_flatten(self):
         self.assertEqual(
             iter2([(1, 2), (3,), (4, 5)]).flatten().to_tuple(),
@@ -101,11 +115,30 @@ class TestIterator2(unittest.TestCase):
         iter2([1, 2, 3]).for_each(res.append)
         self.assertEqual(res, [1, 2, 3])
 
+    def test_foreach(self):
+        with self.subTest('simple'):
+            res = []
+            iter2([1, 2, 3]).foreach(res.append)
+            self.assertEqual(res, [1, 2, 3])
+
+    def test_foreach_t(self):
+        with self.subTest('simple'):
+            res = []
+            iter2([(1, 2), (3, 4)]).foreach_t(lambda x, y: res.append(x + y))
+            self.assertEqual(res, [3, 7])
+
     def test_map(self):
         self.assertEqual(
             iter2([1, 2, 3]).map(lambda x: x ** 2).to_tuple(),
             (1, 4, 9)
         )
+
+    def test_map_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                iter2([(1, 2), (3, 4)]).map_t(lambda x, y: x + y).to_tuple(),
+                (3, 7)
+            )
 
     def test_starmap(self):
         self.assertEqual(
@@ -121,15 +154,33 @@ class TestIterator2(unittest.TestCase):
             iter2([1, 2, 3]).all(lambda x: x > 0)
         )
 
+    def test_all_t(self):
+        with self.subTest('simple'):
+            self.assertTrue(
+                iter2([(1, 2), (3, 4)]).all_t(lambda x, y: x < y)
+            )
+
     def test_any(self):
         self.assertTrue(
             iter2([1, 2, 3]).any(lambda x: x > 1)
         )
 
+    def test_any_t(self):
+        with self.subTest('simple'):
+            self.assertTrue(
+                iter2([(1, 2), (3, 4)]).any_t(lambda x, y: x + y > 5)
+            )
+
     def test_none(self):
         self.assertTrue(
             iter2([1, 2, 3]).none(lambda x: x < 0)
         )
+
+    def test_none_t(self):
+        with self.subTest('simple'):
+            self.assertTrue(
+                iter2([(1, 2), (3, 4)]).none_t(lambda x, y: x + y > 10)
+            )
 
     # =============
     # Making groups
@@ -204,6 +255,28 @@ class TestIterator2(unittest.TestCase):
                 ((1, 1), (0, 2), (1, 3))
             )
 
+    def test_group_by_t(self):
+        with self.subTest('default: same as `group_by`'):
+            self.assertEqual(
+                iter2([(1, 2), (1, 2), (3, 4)])
+                    .group_by_t()
+                    .map_t(lambda val, sub_iter: (val, sub_iter.count()))
+                    .to_tuple(),
+                (((1, 2), 2), ((3, 4), 1))
+            )
+
+        with self.subTest('w/ key function'):
+            self.assertEqual(
+                iter2([(1, 2), (3, 4), (6, 5), (8, 7)])
+                    .group_by_t(key=(lambda x, y: x < y))
+                    .map_t(lambda val, sub_iter: (val, sub_iter.to_tuple()))
+                    .to_tuple(),
+                (
+                    (True,  ((1, 2), (3, 4))),
+                    (False, ((6, 5), (8, 7)))
+                )
+            )
+
     def test_process_in_groups(self):
         materialize = lambda pair: (pair[0], tuple(pair[1]))
 
@@ -231,6 +304,51 @@ class TestIterator2(unittest.TestCase):
                     .process_in_groups(aggregator=sum)
                     .to_tuple()),
                 ((1, 1), (2, 4), (3, 9))
+            )
+
+    def test_process_in_groups_t(self):
+        materialize = lambda val, sub_iter: (val, sub_iter.to_tuple())
+
+        with self.subTest('"group_by_t"'):
+            self.assertEqual(
+                iter2([(1, 2), (3, 4), (6, 5), (8, 7)])
+                    .process_in_groups_t(key=(lambda x, y: x < y))
+                    .map_t(materialize)
+                    .to_tuple(),
+                (
+                    (True,  ((1, 2), (3, 4))),
+                    (False, ((6, 5), (8, 7)))
+                )
+            )
+
+        with self.subTest('w/ transformation'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (6, 5), (8, 7)])
+                    .process_in_groups_t(
+                        key=(lambda x, y: x < y),
+                        transformation=(lambda x, y: x + y)
+                    )
+                    .map_t(materialize)
+                    .to_tuple()),
+                (
+                    (True,  (3, 7)),
+                    (False, (11, 15))
+                )
+            )
+
+        with self.subTest('w/ aggregator'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (6, 5), (8, 7)])
+                    .process_in_groups_t(
+                        key=(lambda x, y: x < y),
+                        transformation=(lambda x, y: x + y),
+                        aggregator=max
+                    )
+                    .to_tuple()),
+                (
+                    (True,  7),
+                    (False, 15)
+                )
             )
 
     # ===========
@@ -289,6 +407,12 @@ class TestIterator2(unittest.TestCase):
         self.assertEqual(t.to_tuple(), (2, 4))
         self.assertEqual(f.to_tuple(), (1, 3, 5))
 
+    def test_partition_t(self):
+        with self.subTest('simple'):
+            t, f = iter2([(1, 2), (4, 3), (5, 6)]).partition_t(lambda x, y: x < y)
+            self.assertEqual(t.to_tuple(), ((1, 2), (5, 6)))
+            self.assertEqual(f.to_tuple(), ((4, 3),))
+
     def test_split_after(self):
         with self.subTest('simple'):
             self.assertEqual(
@@ -297,6 +421,16 @@ class TestIterator2(unittest.TestCase):
                     .map(tuple)
                     .to_tuple()),
                 tuple(map(tuple, ('192.', '168.', '0.', '1')))
+            )
+
+    def test_split_after_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2([(1, 2),(4, 3), (5, 6)])
+                    .split_after_t(lambda x, y: x > y)
+                    .map(tuple)
+                    .to_tuple()),
+                (((1, 2), (4, 3)), ((5, 6),))
             )
 
     def test_split_at(self):
@@ -309,6 +443,16 @@ class TestIterator2(unittest.TestCase):
                 tuple(map(tuple, ('192', '168', '0', '1')))
             )
 
+    def test_split_at_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2([(1, 2),(4, 3), (5, 6)])
+                    .split_at_t(lambda x, y: x > y)
+                    .map(tuple)
+                    .to_tuple()),
+                (((1, 2),), ((5, 6),))
+            )
+
     def test_split_before(self):
         with self.subTest('simple'):
             self.assertEqual(
@@ -319,6 +463,15 @@ class TestIterator2(unittest.TestCase):
                 tuple(map(tuple, ('192', '.168', '.0', '.1')))
             )
 
+    def test_split_before_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2([(1, 2),(4, 3), (5, 6)])
+                    .split_before_t(lambda x, y: x > y)
+                    .map(tuple)
+                    .to_tuple()),
+                (((1, 2),), ((4, 3), (5, 6),))
+            )
 
     def test_permutations(self):
         with self.subTest('default'):
@@ -443,8 +596,17 @@ class TestIterator2(unittest.TestCase):
             (3, 4, 5)
         )
 
+    def test_drop_while_t(self):
+        with self.subTest('simple'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .drop_while_t((lambda x, y: x + y < 5))
+                    .to_tuple()),
+                ((3, 4), (5, 6))
+            )
+
     def test_find(self):
-        with self.subTest('item exist'):
+        with self.subTest('item exists'):
             self.assertEqual(
                 iter2([1, 2, 3]).find(lambda x: x % 2 == 0).unwrap(),
                 2
@@ -452,6 +614,22 @@ class TestIterator2(unittest.TestCase):
         with self.subTest('not found'):
             self.assertTrue(
                 iter2([1, 2, 3]).find(lambda x: x == 5).is_none()
+            )
+
+    def test_find_t(self):
+        with self.subTest('item exists'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .find_t(lambda x, y: x + y > 5)
+                    .unwrap()),
+                (3, 4)
+            )
+
+        with self.subTest('not found'):
+            self.assertTrue(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                 .find_t(lambda x, y: x + y > 100500)
+                 .is_none())
             )
 
     def test_first(self):
@@ -479,6 +657,31 @@ class TestIterator2(unittest.TestCase):
                 ()
             )
 
+    def test_locate_t(self):
+        with self.subTest('w/o items'):
+            self.assertEqual(
+                (iter2(['ab', 'cD', 'ef'])
+                    .locate_t(lambda a, b: b.isupper(), count_from=1)
+                    .to_tuple()),
+                (2,)
+            )
+
+        with self.subTest('w/ items'):
+            self.assertEqual(
+                (iter2(['ab', 'cD', 'ef'])
+                    .locate_t(lambda a, b: b.isupper(), count_from=1, with_items=True)
+                    .to_tuple()),
+                ((2, 'cD'),)
+            )
+
+        with self.subTest('not found'):
+            self.assertEqual(
+                (iter2(['ab', 'cd', 'ef'])
+                    .locate_t(lambda a, b: b.isupper(), count_from=1, with_items=True)
+                    .to_tuple()),
+                ()
+            )
+
     def test_nth(self):
         with self.subTest('found'):
             self.assertEqual(
@@ -500,6 +703,22 @@ class TestIterator2(unittest.TestCase):
         with self.subTest('not found'):
             self.assertTrue(
                 iter2('abcde').position(str.isupper, count_from=1).is_none()
+            )
+
+    def test_position_t(self):
+        with self.subTest('found'):
+            self.assertEqual(
+                (iter2(['ab', 'cD', 'ef'])
+                     .position_t(lambda a, b: b.isupper(), count_from=1)
+                     .unwrap()),
+                2
+            )
+
+        with self.subTest('not found'):
+            self.assertTrue(
+                (iter2(['ab', 'cd', 'ef'])
+                     .position_t(lambda a, b: b.isupper(), count_from=1)
+                     .is_none())
             )
 
     def test_prepend(self):
@@ -528,6 +747,10 @@ class TestIterator2(unittest.TestCase):
 
     def test_skip_while(self):
         'alias for `Iterator2.drop_while`'
+        pass
+
+    def test_skip_while_t(self):
+        'alias for `Iterator2.drop_while_t'
         pass
 
     def test_slice(self):
@@ -607,6 +830,27 @@ class TestIterator2(unittest.TestCase):
                     .sort(key=lambda pair: pair[1])
                     .to_tuple(),
                 (('c', 0), ('a', 1), ('b', 2))
+            )
+
+    def test_sort_t(self):
+        with self.subTest('default'):
+            self.assertEqual(
+                iter2([(3, 0), (3, 1), (3, 2)]).sort_t().to_tuple(),
+                iter2([(3, 0), (3, 1), (3, 2)]).sort().to_tuple(),
+            )
+
+        with self.subTest('reverse'):
+            self.assertEqual(
+                iter2([(3, 0), (3, 1), (3, 2)]).sort_t(reverse=True).to_tuple(),
+                iter2([(3, 0), (3, 1), (3, 2)]).sort(reverse=True).to_tuple(),
+            )
+
+        with self.subTest('w/ key'):
+            self.assertEqual(
+                (iter2([(3, 0), (3, 1), (3, 2)])
+                    .sort_t(key=(lambda x, y: x - y))
+                    .to_tuple()),
+                ((3, 2), (3, 1), (3, 0))
             )
 
     def test_take(self):
@@ -723,6 +967,19 @@ class TestIterator2(unittest.TestCase):
                 (4, 5)
             )
 
+    def test_take_while_t(self):
+        with self.subTest('default: do not keep border element'):
+            it = iter2([(1, 2), (3, 4), (5, 6), (7, 8)])
+            self.assertEqual(
+                it.ref().take_while_t(lambda x, y: x + y < 8).to_tuple(),
+                ((1, 2), (3, 4))
+            )
+            # `(5, 6)` was consumed and not placed back
+            self.assertEqual(
+                it.ref().to_tuple(),
+                ((7, 8),)
+            )
+
     def test_unique(self):
         self.assertEqual(
             iter2([1, 3, 2, 3, 2, 3]).unique().collect(frozenset),
@@ -802,6 +1059,21 @@ class TestIterator2(unittest.TestCase):
                 sum([-3,  1, 2, 3])
             )
 
+    def test_fold_t(self):
+        with self.subTest('w/o initial'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .fold_t(lambda st, x, y: st + (x * y,))),
+                (1, 2, 3 * 4, 5 * 6)
+            )
+
+        with self.subTest('w/ initial'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .fold_t(lambda st, x, y: st + x * y, initial=-3)),
+                (-3 + 1 * 2 + 3 * 4 + 5 * 6)
+            )
+
     def test_join(self):
         with self.subTest('str'):
             self.assertEqual(
@@ -840,6 +1112,14 @@ class TestIterator2(unittest.TestCase):
                 1
             )
 
+    def test_max_t(self):
+        with self.subTest('w/ key'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .max_t(key=(lambda x, y: y))),
+                (5, 6)
+            )
+
     def test_min(self):
         with self.subTest('empty'):
             self.assertEqual(
@@ -861,6 +1141,14 @@ class TestIterator2(unittest.TestCase):
                 iter2([1, 2, 3, 4]).min(key=lambda x: (x % 2, -x)),
                 # [(1, -1), (0, -2), (1, -3), (0, -4)]
                 4
+            )
+
+    def test_min_t(self):
+        with self.subTest('w/ key'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .min_t(key=(lambda x, y: y))),
+                (1, 2)
             )
 
     def test_minmax(self):
@@ -886,6 +1174,14 @@ class TestIterator2(unittest.TestCase):
                 (4, 1)
             )
 
+    def test_minmax_t(self):
+        with self.subTest('w/ key'):
+            self.assertEqual(
+                (iter2([(1, 2), (3, 4), (5, 6)])
+                    .minmax_t(key=(lambda x, y: y))),
+                ((1, 2), (5, 6))
+            )
+
     def test_product(self):
         self.assertEqual(
             iter2([1, 2, 3]).product(),
@@ -894,6 +1190,10 @@ class TestIterator2(unittest.TestCase):
 
     def test_reduce(self):
         'alias for `iterator2.fold`'
+        pass
+
+    def test_reduce_t(self):
+        'alias for Iterator2.fold_t'
         pass
 
     def test_sum(self):
