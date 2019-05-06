@@ -23,6 +23,7 @@ algorithms_chain_from_iterable = algorithms.merging.chain_from_iterable
 
 itertools_chain = itertools.chain
 itertools_islice = itertools.islice
+itertools_starmap = itertools.starmap
 itertools_tee = itertools.tee
 
 
@@ -80,6 +81,20 @@ def with_rich_subiterators(*, in_tuple=False):
                 return Iterator2(map(Iterator2, self.raw()))
         return wrapper
     return _with_rich_subiterators
+
+
+def tuple_wise(func):
+    return (lambda item: func(*item))
+
+def tuple_wise_version_of(base_method):
+    def tuple_wise_version_of_base_method(method):
+        method.__doc__ = '\n'.join([f'Tuple wise option of `{base_method.__name__}`', '---', base_method.__doc__ or ''])
+        @wraps(method)
+        def wrapper(self, func, *args, **kwargs):
+            adapter_func = tuple_wise(func)
+            return base_method(self, adapter_func, *args, **kwargs)
+        return wrapper
+    return tuple_wise_version_of_base_method
 
 
 @export_from_module
@@ -143,8 +158,15 @@ class Iterator2:
     # Processing "sequence -> sequence"
     # =================================
     @derived_from(algorithms.sequence_to_sequence.add_side_effect)
-    def add_side_effect(self, func, chunk_size=None, before=None, after=None):
+    def add_side_effect(self, func, *, chunk_size=None, before=None, after=None):
         pass
+
+    def add_side_effect_t(self, func, *, chunk_size=None, before=None, after=None):
+        '''Tuple wise version of `add_side_effect`'''
+        adapter_func = tuple_wise(func)
+        adapter_before = before and tuple_wise(before)
+        adapter_after = after and tuple_wise(after)
+        return self.add_side_effect(adapter_func, chunk_size=chunk_size, before=adapter_before, after=adapter_after)
 
     @derived_from(algorithms.sequence_to_sequence.accumulate)
     def accumulate(self, func=None, *, initial=None):
@@ -174,12 +196,20 @@ class Iterator2:
     def drop_while(self, predicate):
         pass
 
+    @tuple_wise_version_of(drop_while)
+    def drop_while_t(self, predicate):
+        pass
+
     @derived_from(algorithms.sequence_to_sequence.enumerate)
     def enumerate(self, *, count_from=0):
         pass
 
     @derived_from(algorithms.sequence_to_sequence.filter)
     def filter(self, predicate, *, inverse=False):
+        pass
+
+    @tuple_wise_version_of(filter)
+    def filter_t(self, predicate, *, inverse=False):
         pass
 
     @derived_from(algorithms.sequence_to_sequence.filter_none)
@@ -206,13 +236,17 @@ class Iterator2:
     def flatmap(self, func):
         pass
 
+    @tuple_wise_version_of(flatmap)
+    def flatmap_t(self, func):
+        pass
+
     @derived_from(algorithms.sequence_to_sequence.flatten)
     def flatten(self):
         pass
 
     def for_each(self, func):
         '''
-        Calls`func` on every item. Returns nothing. Is equivalent to:
+        Calls `func` on every item. Returns nothing. Is equivalent to:
             for item in it:
                 func(it)
 
@@ -227,6 +261,20 @@ class Iterator2:
         for item in self._iterator:
             func(item)
 
+    def foreach(self, func):
+        '''
+        Alias for `for_each`.
+
+        :param func:
+        :return:  nothing
+        '''
+        for item in self._iterator:
+            func(item)
+
+    @tuple_wise_version_of(foreach)
+    def foreach_t(self, func):
+        pass
+
     @derived_from(algorithms.sequence_to_sequence.intersperse)
     def intersperse(self, item):
         pass
@@ -235,12 +283,20 @@ class Iterator2:
     def map(self, func):
         pass
 
+    @derived_from(algorithms.sequence_to_sequence.starmap)
+    def map_t(self, func):
+        pass
+
     @derived_from(algorithms.sequence_to_sequence.skip)
     def skip(self, number=1):
         pass
 
     @derived_from(algorithms.sequence_to_sequence.skip_while)
     def skip_while(self, predicate):
+        pass
+
+    @tuple_wise_version_of(skip_while)
+    def skip_while_t(self, predicate):
         pass
 
     @derived_from(algorithms.sequence_to_sequence.slice)
@@ -316,6 +372,10 @@ class Iterator2:
         # TODO: keep border element
         pass
 
+    @tuple_wise_version_of(take_while)
+    def take_while_t(self, predicate):
+        pass
+
     # ===================
     # Checking conditions
     # ===================
@@ -323,12 +383,24 @@ class Iterator2:
     def all(self, predicate):
         pass
 
+    @tuple_wise_version_of(all)
+    def all_t(self, predicate):
+        pass
+
     @derived_from(algorithms.predicate_on_sequence.any, wrap_into_iterator=False)
     def any(self, predicate):
         pass
 
+    @tuple_wise_version_of(any)
+    def any_t(self, predicate):
+        pass
+
     @derived_from(algorithms.predicate_on_sequence.none, wrap_into_iterator=False)
     def none(self, predicate):
+        pass
+
+    @tuple_wise_version_of(none)
+    def none_t(self, predicate):
         pass
 
     # =============
@@ -353,6 +425,11 @@ class Iterator2:
             for val, sub_iter in self.raw()
         ))
 
+    def group_by_t(self, *, key=None):
+        '''Tuple-wise version of `group_by`'''
+        adapter_key = key and tuple_wise(key)
+        return self.group_by(key=adapter_key)
+
     @derived_from(algorithms.sequence_to_groups.pairwise)
     def pairwise(self):
         pass
@@ -360,6 +437,12 @@ class Iterator2:
     @based_on(algorithms.sequence_to_groups.process_in_groups)
     def process_in_groups(self, *, key=None, transformation=None, aggregator=lambda it: Iterator2(it)):
         return Iterator2(self.raw())
+
+    def process_in_groups_t(self, *, key=None, transformation=None, aggregator=lambda it: Iterator2(it)):
+        '''Tuple-wise version of `process_in_groups`'''
+        adapter_key = key and tuple_wise(key)
+        adapter_transformation = transformation and tuple_wise(transformation)
+        return self.process_in_groups(key=adapter_key, transformation=adapter_transformation, aggregator=aggregator)
 
     @derived_from(algorithms.sequence_to_groups.permutations)
     def permutations(self, length=None):
@@ -437,9 +520,17 @@ class Iterator2:
     def partition(self, predicate):
         pass
 
+    @tuple_wise_version_of(partition)
+    def partition_t(self, predicate):
+        pass
+
     @based_on(algorithms.splitting.split_after)
     @with_rich_subiterators()
     def split_after(self, predicate):
+        pass
+
+    @tuple_wise_version_of(split_after)
+    def split_after_t(self, predicate):
         pass
 
     @based_on(algorithms.splitting.split_at)
@@ -447,9 +538,17 @@ class Iterator2:
     def split_at(self, predicate):
         pass
 
+    @tuple_wise_version_of(split_at)
+    def split_at_t(self, predicate):
+        pass
+
     @based_on(algorithms.splitting.split_before)
     @with_rich_subiterators()
     def split_before(self, predicate):
+        pass
+
+    @tuple_wise_version_of(split_before)
+    def split_before_t(self, predicate):
         pass
 
     @based_on(algorithms.splitting.unzip)
@@ -471,6 +570,10 @@ class Iterator2:
         anti_predicate = lambda item: not predicate(item)
         return self.drop_while(anti_predicate).next()
 
+    @tuple_wise_version_of(find)
+    def find_t(self, predicate):
+        pass
+
     def first(self):
         return self.next()
 
@@ -479,6 +582,10 @@ class Iterator2:
 
     @derived_from(algorithms.searching.locate)
     def locate(self, predicate, *, count_from=0):
+        pass
+
+    @tuple_wise_version_of(locate)
+    def locate_t(self, predicate, *, count_from=0):
         pass
 
     def nth(self, index):
@@ -492,8 +599,13 @@ class Iterator2:
 
     @based_on(algorithms.searching.position)
     def position(self, predicate, *, count_from=0):
-        idx = self._iterator
+        # Note: `algorithms.searching.position` returns number, `base_on` places it into `self._iterator`
+        idx: int = self._iterator
         return None2 if idx < 0 else Some2(idx)
+
+    @tuple_wise_version_of(position)
+    def position_t(self, predicate, *, count_from=0):
+        pass
 
     def sort(self, *, key=None, reverse=False):
         '''
@@ -506,6 +618,11 @@ class Iterator2:
         return Iterator2(
             sorted(self._iterator, key=key, reverse=reverse)
         )
+
+    def sort_t(self, *, key=None, reverse=False):
+        '''Tuple-wise version of `sort_t`'''
+        adapter_key = key and tuple_wise(key)
+        return self.sort(key=adapter_key, reverse=reverse)
 
     def unique(self):
         '''
@@ -534,6 +651,9 @@ class Iterator2:
         return set(self.raw())
 
     def to_tuple(self):
+        return tuple(self.raw())
+
+    def t(self):
         return tuple(self.raw())
 
     # ===========
@@ -567,6 +687,11 @@ class Iterator2:
     def fold(self, func, *, initial=None):
         pass
 
+    def fold_t(self, func, *, initial=None):
+        '''Tuple-wise version of `fold`'''
+        adapter_func = lambda st, item: func(st, *item)
+        return self.fold(adapter_func, initial=initial)
+
     @derived_from(algorithms.folding.join, wrap_into_iterator=False)
     def join(self, sep):
         pass
@@ -575,13 +700,25 @@ class Iterator2:
     def max(self, *, default=None, key=None):
         pass
 
+    def max_t(self, *, default=None, key=None):
+        adapter_key = tuple_wise(key)
+        return self.max(default=default, key=adapter_key)
+
     @derived_from(algorithms.folding.min, wrap_into_iterator=False)
     def min(self, *, default=None, key=None):
         pass
 
+    def min_t(self, *, default=None, key=None):
+        adapter_key = tuple_wise(key)
+        return self.min(default=default, key=adapter_key)
+
     @derived_from(algorithms.folding.minmax, wrap_into_iterator=False)
     def minmax(self, *, default=None, key=None):
         pass
+
+    def minmax_t(self, *, default=None, key=None):
+        adapter_key = tuple_wise(key)
+        return self.minmax(default=default, key=adapter_key)
 
     @derived_from(algorithms.folding.product, wrap_into_iterator=False)
     def product(self):
@@ -589,6 +726,10 @@ class Iterator2:
 
     @derived_from(algorithms.folding.reduce, wrap_into_iterator=False)
     def reduce(self, func, *, initial=None):
+        pass
+
+    @tuple_wise_version_of(reduce)
+    def reduce_t(self, func, *, initial=None):
         pass
 
     @derived_from(algorithms.folding.sum, wrap_into_iterator=False)
