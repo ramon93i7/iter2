@@ -106,3 +106,13 @@ reduce(
     )
 ) # or not?
 ```
+
+##Changelog
+
+####v1.1
+
+- Tuple-wise methods
+
+#### v1.0
+
+- Initial
