@@ -2,6 +2,7 @@ import itertools
 import operator
 import collections
 
+from . import base
 from . import merging
 from iter2.utils import define_module_exporter
 
@@ -24,6 +25,7 @@ itertools_zip_longest = itertools.zip_longest
 collections_deque = collections.deque
 operator_itemgetter = operator.itemgetter
 
+base_take_now = base.take_now
 merging_zip_offset = merging.zip_offset
 
 
@@ -48,10 +50,10 @@ def chunks(iterable, size, *, allow_partial=False):
         yield from builtin_zip(*it_copies)
     else:
         it = iter(iterable)
-        next_diff_piece = tuple(itertools_islice(it, size))
+        next_diff_piece = base_take_now(it, size)
         while len(next_diff_piece) == size:
             yield next_diff_piece
-            next_diff_piece = tuple(itertools_islice(it, size))
+            next_diff_piece = base_take_now(it, size)
         if len(next_diff_piece) > 0:
             yield next_diff_piece
 
@@ -229,25 +231,25 @@ def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
     # TODO: think about optimizing iteration in chunks
 
     it = iter(iterable)
-    first_piece = tuple(itertools_islice(it, size))
+    first_piece = base_take_now(it, size)
     if len(first_piece) != size and not allow_partial:
         return  # not enough elements
     yield first_piece
 
     if step < size:
         dq = collections_deque(first_piece, maxlen=size)
-        next_diff_piece = tuple(itertools_islice(it, step))
+        next_diff_piece = base_take_now(it, step)
         while len(next_diff_piece) == step:
             dq.extend(next_diff_piece)
             yield tuple(dq)
-            next_diff_piece = tuple(itertools_islice(it, step))
+            next_diff_piece = base_take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
             yield next_diff_piece
     else:  # step > size
-        next_diff_piece = tuple(itertools_islice(it, step))
+        next_diff_piece = base_take_now(it, step)
         while len(next_diff_piece) == step:
             yield next_diff_piece[-size:]
-            next_diff_piece = tuple(itertools_islice(it, step))
+            next_diff_piece = base_take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
             idx_of_start = len(next_diff_piece) - (step - size)
             yield next_diff_piece[idx_of_start:]
