@@ -198,7 +198,7 @@ def difference(iterable, func=operator.sub, *, initial=UNDEFINED):
     a, b = itertools__tee(it)
     try:
         item = next(b)
-        return itertools__chain((item,), builtin__map(lambda x: func(x[1], x[0]), builtin__zip(a, b)))
+        return itertools__chain((item,), itertools__starmap(func, builtin__zip(b, a)))
     except StopIteration:
         return iter(())
 
