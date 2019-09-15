@@ -36,8 +36,11 @@ contextlib__suppress = contextlib.suppress
 s2g__chunks = sequence_to_groups.chunks
 
 
+UNDEFINED = object()
+
+
 @export_from_module
-def accumulate(iterable, func=None, *, initial=None):
+def accumulate(iterable, func=UNDEFINED, *, initial=UNDEFINED):
     '''
     Return series of accumulated results of binary `func`.
     If `initial` is present then it will be used as first accumulated value.
@@ -53,18 +56,18 @@ def accumulate(iterable, func=None, *, initial=None):
     >>> tuple(accumulate([1, 2, 3], lambda x, y: x * y))
     (1, 2, 6)
     '''
-    if initial is not None:
-        it = itertools__chain((initial,), iterable)
-    else:
+    if initial is UNDEFINED:
         it = iterable
-    if func is None:
+    else:
+        it = itertools__chain((initial,), iterable)
+    if func is UNDEFINED:
         return itertools__accumulate(it)
     else:
         return itertools__accumulate(it, func)
 
 
 @export_from_module
-def add_side_effect(iterable, func, *, chunk_size=None, before=None, after=None):
+def add_side_effect(iterable, func, *, chunk_size=UNDEFINED, before=UNDEFINED, after=UNDEFINED):
     '''
     Returns new iterator that calls `func` w/ every item from `iterable` as first argument but yields original items.
     If `chunk_size` is set to value bigger than 1 then calls `func` w/ every chunk of `chunk_size` as first argument.
@@ -93,9 +96,9 @@ def add_side_effect(iterable, func, *, chunk_size=None, before=None, after=None)
     (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
     '''
     try:
-        if before is not None:
+        if before is not UNDEFINED:
             before()
-        if chunk_size is None or chunk_size == 1:
+        if chunk_size is UNDEFINED or chunk_size == 1:
             for item in iterable:
                 func(item)
                 yield item
@@ -104,12 +107,12 @@ def add_side_effect(iterable, func, *, chunk_size=None, before=None, after=None)
                 func(chunk)
                 yield from chunk
     finally:
-        if after is not None:
+        if after is not UNDEFINED:
             after()
 
 
 @export_from_module
-def consume(iterable, number=None):
+def consume(iterable, number=UNDEFINED):
     '''
     Consumes `number` of items from `iterable`. If `number` is not present then whole iterable is consumed.
 
@@ -124,7 +127,7 @@ def consume(iterable, number=None):
     (8, 9)
     '''
     iterable = iter(iterable)  # it can look like iterable but it's not (e.g. range(10))
-    if number is None:
+    if number is UNDEFINED:
         collections__deque(iterable, maxlen=0)  # fastest full consume ever
     else:
         next(itertools__islice(iterable, number, number), None)
@@ -132,7 +135,7 @@ def consume(iterable, number=None):
 
 
 @export_from_module
-def cycle(iterable, *, number=None):
+def cycle(iterable, *, number=UNDEFINED):
     '''
     Returns iterator that yields items from `iterable` in cycle `number` times.
     If `number` is not present then cycle is infinite.
@@ -145,7 +148,7 @@ def cycle(iterable, *, number=None):
     >>> tuple(cycle([0, 1], number=2))
     (0, 1, 0, 1)
     '''
-    if number is None:
+    if number is UNDEFINED:
         return itertools__cycle(iterable)
     else:
         # TODO: think about (micro)optimization
@@ -164,13 +167,14 @@ def dedup(iterable):
     >>> ''.join(dedup('011011110011'))
     '010101'
     '''
+    # TODO: make general w/ `key` parameter
     for val, sub_iter in itertools__groupby(iterable):
         yield val
         consume(sub_iter)
 
 
 @export_from_module
-def difference(iterable, func=operator.sub, *, initial=None):
+def difference(iterable, func=operator.sub, *, initial=UNDEFINED):
     '''
     By default, compute the first difference of `iterable` using `operator.sub`. This is the opposite of `accumulate`’s default behavior.
     By default `func` is operator.sub(), but other functions can be specified. They will be applied as follows:
@@ -187,10 +191,10 @@ def difference(iterable, func=operator.sub, *, initial=None):
     (1, 2, 3)
 
     '''
-    if initial is not None:
-        it = itertools__chain((initial,), iterable)
-    else:
+    if initial is UNDEFINED:
         it = iterable
+    else:
+        it = itertools__chain((initial,), iterable)
     a, b = itertools__tee(it)
     try:
         item = next(b)
@@ -304,7 +308,7 @@ def flatmap(iterable, func):
     >>> tuple(flatmap(['one two', 'three four', 'five'], str.split))
     ('one', 'two', 'three', 'four', 'five')
     '''
-    return itertools__chain.from_iterable(builtin__map(func, iterable))
+    return itertools__chain_from_iterable(builtin__map(func, iterable))
 
 
 @export_from_module
@@ -319,7 +323,7 @@ def flatten(iterable):
     >>> tuple(flatten(((1, 2), (3,))))
     (1, 2, 3)
     '''
-    return itertools__chain.from_iterable(iterable)
+    return itertools__chain_from_iterable(iterable)
 
 
 @export_from_module

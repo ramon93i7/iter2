@@ -29,6 +29,9 @@ base__take_now = base.take_now
 merging__zip_offset = merging.zip_offset
 
 
+UNDEFINED = object()
+
+
 @export_from_module
 def chunks(iterable, size, *, allow_partial=False):
     '''
@@ -79,7 +82,7 @@ def chunks_with_padding(iterable, size, *, fillvalue=None):
 
 
 @export_from_module
-def consecutive_groups(iterable, *, ordering=None):
+def consecutive_groups(iterable, *, ordering=UNDEFINED):
     '''
     Groups items which are consecutive due to `ordering`. If `ordering` is None then it is assumed that items are integers.
 
@@ -93,8 +96,8 @@ def consecutive_groups(iterable, *, ordering=None):
     >>> tuple(consecutive_groups('abcBCDcde', ordering=ord))
     (('a', 'b', 'c'), ('B', 'C', 'D'), ('c', 'd', 'e'))
     '''
-    if ordering is None:
-        key = lambda idx, item: idx - item
+    if ordering is UNDEFINED:
+        key = lambda idx, item: idx - item  # TODO: precalc
     else:
         key = lambda idx, item: idx - ordering(item)
     return (
@@ -158,7 +161,7 @@ def permutations(iterable, length=None):
 
 
 @export_from_module
-def process_in_groups(iterable, *, key=None, transformation=None, aggregator=None):
+def process_in_groups(iterable, *, key=None, transformation=UNDEFINED, aggregator=UNDEFINED):
     '''
     Groups items in consecutive keys and groups from the `iterable`.
     If `key` function is not specified or is None, the element itself is a key for grouping.
@@ -189,12 +192,12 @@ def process_in_groups(iterable, *, key=None, transformation=None, aggregator=Non
     (3, 9)
     '''
     result = itertools__groupby(iterable, key=key)
-    if transformation is not None:
+    if transformation is not UNDEFINED:
         result = (
             (val, builtin__map(transformation, sub_iter))
             for val, sub_iter in result
         )
-    if aggregator is not None:
+    if aggregator is not UNDEFINED:
         result = (
             (val, aggregator(sub_iter))
             for val, sub_iter in result
@@ -225,8 +228,7 @@ def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
     :return:
     '''
     if step == size:
-        yield from chunks(iterable, size, allow_partial=allow_partial)
-        return  # done
+        return chunks(iterable, size, allow_partial=allow_partial)
 
     # TODO: think about optimizing iteration in chunks
 

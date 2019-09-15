@@ -40,7 +40,7 @@ def chain(*iterables):
 def chain_from_iterable(iterables_in_iterable):
     '''
     Returns a new iterable yielding items from iterables, iterable by iterable.
-    This is the same as `chain` b   ut consumes iterables from another iterable.
+    This is the same as `chain` but consumes iterables from another iterable.
 
     :param iterables_in_iterable:
     :return:  chained iterables as new iterable

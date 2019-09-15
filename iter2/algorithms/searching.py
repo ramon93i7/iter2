@@ -21,6 +21,7 @@ def find(iterable, predicate):
     >>> find([1, 2, 3], lambda x: x % 2 == 0)
     2
     '''
+    # TODO: add `default value` for "missed" scenario
     return next(builtin__filter(predicate, iterable))
 
 

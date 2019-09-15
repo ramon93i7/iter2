@@ -16,6 +16,9 @@ functools__reduce = functools.reduce
 operator__mul = operator.mul
 
 
+UNDEFINED = object()
+
+
 @export_from_module
 def count(iterable):
     '''
@@ -32,7 +35,7 @@ def count(iterable):
 
 
 @export_from_module
-def fold(iterable, func, *, initial=None):
+def fold(iterable, func, *, initial=UNDEFINED):
     '''
     Apply a function `func` of two arguments cumulatively to the items of a `iterable`,
     from left to right, so as to reduce the sequence to a single value. If `initial` is not None
@@ -71,7 +74,7 @@ def join(iterable, sep):
 
 
 @export_from_module
-def max(iterable, *, default=None, key=None):
+def max(iterable, *, default=None, key=UNDEFINED):
     '''
     Returns biggest item from iterable. If iterable is empty returns None.
     If `key` function is set then `key(item)` is used as value for comparison.
@@ -89,14 +92,14 @@ def max(iterable, *, default=None, key=None):
     >>> max([], default='nothing')
     'nothing'
     '''
-    if key is None:
+    if key is UNDEFINED:
         return builtin__max(iterable, default=default)
     else:
         return builtin__max(iterable, default=default, key=key)
 
 
 @export_from_module
-def min(iterator, *, default=None, key=None):
+def min(iterator, *, default=None, key=UNDEFINED):
     '''
     Returns smallest item from iterable. If iterable is empty returns None.
     If `key` function is set then `key(item)` is used as value for comparison.
@@ -114,14 +117,14 @@ def min(iterator, *, default=None, key=None):
     >>> min([], default='nothing')
     'nothing'
     '''
-    if key is None:
+    if key is UNDEFINED:
         return builtin__min(iterator, default=default)
     else:
         return builtin__min(iterator, default=default, key=key)
 
 
 @export_from_module
-def minmax(iterable, *, default=None, key=None):
+def minmax(iterable, *, default=None, key=UNDEFINED):
     '''
     Returns smallest and biggest item from iterable. If iterable is empty returns `None`.
     If `key` function is set then `key(item)` is used as value for comparison.
@@ -141,7 +144,7 @@ def minmax(iterable, *, default=None, key=None):
     '''
     # TODO: search for more optimized algo
     iterator = iter(iterable)
-    if key is None:  # w/o key
+    if key is UNDEFINED:  # w/o key
         try:
             first = next(iterator)
             min_element = first
@@ -193,7 +196,7 @@ def product(iterable):
 
 @export_from_module
 @alias_for(fold)
-def reduce(iterable, func, *, initial=None):
+def reduce(iterable, func, *, initial=UNDEFINED):
     pass
 
 

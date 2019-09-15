@@ -21,6 +21,9 @@ collections__Counter = collections.Counter
 operator__itemgetter = operator.itemgetter
 
 
+UNDEFINED = object()
+
+
 @export_from_module
 @alias_for(itertools__product)
 def cartesian_product(*iterables, repeat=1):
@@ -35,7 +38,7 @@ def cartesian_product(*iterables, repeat=1):
 
 
 @export_from_module
-def sort_together(*iterables, key_list=(0,), key_func=None, reverse=False):
+def sort_together(*iterables, key_list=(0,), key_func=UNDEFINED, reverse=False):
     '''
     Sorts iterables as they were zipped.
 
@@ -49,9 +52,10 @@ def sort_together(*iterables, key_list=(0,), key_func=None, reverse=False):
     >>> tuple(map(tuple, sort_together([1, 2, 3, 4, 5], 'abcde', key_func=(lambda x: x % 2))))
     ((2, 4, 1, 3, 5), ('b', 'd', 'a', 'c', 'e'))
     '''
-    if key_func is None:
+    if key_func is UNDEFINED:
         key = operator__itemgetter(*key_list)
     else:
+        # TODO: simplify and test performance
         if len(key_list) == 1:
             idx = key_list[0]
             key = lambda item: key_func(item[idx])
