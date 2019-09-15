@@ -33,7 +33,7 @@ UNDEFINED = object()
 
 
 @export_from_module
-def chunks(iterable, size, *, allow_partial=False):
+def chunks(iterable, size, *, allow_partial=False, collect_to=tuple):
     '''
     Groups items in chunks of size `size`. If `allow_partial` is True last chunk may be incomplete.
 
@@ -50,19 +50,22 @@ def chunks(iterable, size, *, allow_partial=False):
     '''
     if allow_partial is False:
         it_copies = (iter(iterable),) * size
-        yield from builtin__zip(*it_copies)
+        chunks_stream = builtin__zip(*it_copies)
+        if collect_to is not tuple:
+            chunks_stream = builtin__map(collect_to, chunks_stream)
+        yield from chunks_stream
     else:
         it = iter(iterable)
-        next_diff_piece = base__take_now(it, size)
+        next_diff_piece = base__take_now(it, size, collect_to)
         while len(next_diff_piece) == size:
             yield next_diff_piece
-            next_diff_piece = base__take_now(it, size)
+            next_diff_piece = base__take_now(it, size, collect_to)
         if len(next_diff_piece) > 0:
             yield next_diff_piece
 
 
 @export_from_module
-def chunks_with_padding(iterable, size, *, fillvalue=None):
+def chunks_with_padding(iterable, size, *, fillvalue=None, collect_to=tuple):
     '''
     Groups items in chunks of size `size`. Fills incomplete chunk with `fillvalue`.
 
@@ -78,11 +81,14 @@ def chunks_with_padding(iterable, size, *, fillvalue=None):
     ((1, 2), (3, 100500))
     '''
     it_copies = (iter(iterable),) * size
-    return itertools__zip_longest(*it_copies, fillvalue=fillvalue)
+    chunks_stream = itertools__zip_longest(*it_copies, fillvalue=fillvalue)
+    if collect_to is not tuple:
+        chunks_stream = builtin__map(collect_to, chunks_stream)
+    return chunks_stream
 
 
 @export_from_module
-def consecutive_groups(iterable, *, ordering=UNDEFINED):
+def consecutive_groups(iterable, *, ordering=UNDEFINED, wrap_into=UNDEFINED):
     '''
     Groups items which are consecutive due to `ordering`. If `ordering` is None then it is assumed that items are integers.
 
@@ -100,14 +106,17 @@ def consecutive_groups(iterable, *, ordering=UNDEFINED):
         key = lambda idx, item: idx - item  # TODO: precalc
     else:
         key = lambda idx, item: idx - ordering(item)
-    return (
+    result_groups_streams = (
         builtin__map(operator__itemgetter(1), sub_iter)
         for _, sub_iter in itertools__groupby(builtin__enumerate(iterable), key=(lambda item: key(*item)))
     )
+    if wrap_into is not UNDEFINED:
+        result_groups_streams = builtin__map(wrap_into, result_groups_streams)
+    return result_groups_streams
 
 
 @export_from_module
-def group_by(iterable, *, key=None):
+def group_by(iterable, *, key=None, wrap_into=UNDEFINED):
     '''
     Groups items in consecutive keys and groups from the `iterable`.
     If `key` function is not specified or is None, the element itself is a key for grouping.
@@ -123,12 +132,18 @@ def group_by(iterable, *, key=None):
     (0, (2, 2))
     (1, (3, 3, 3))
     '''
-    return itertools__groupby(iterable, key=key)
+    group_stream = itertools__groupby(iterable, key=key)
+    if wrap_into is not UNDEFINED:
+        group_stream = (
+            (item, wrap_into(sub_iter))
+            for item, sub_iter in group_stream
+        )
+    return group_stream
 
 
 
 @export_from_module
-def pairwise(iterable):
+def pairwise(iterable, *, collect_to=tuple):
     '''
     Groups items in overlapping pairs from the original.
 
@@ -141,11 +156,14 @@ def pairwise(iterable):
     '''
     copy1, copy2 = itertools__tee(iterable, 2)
     next(copy2, None)
-    return builtin__zip(copy1, copy2)
+    pairs = builtin__zip(copy1, copy2)
+    if collect_to is not tuple:
+        pairs = builtin__map(collect_to, pairs)
+    return pairs
 
 
 @export_from_module
-def permutations(iterable, length=None):
+def permutations(iterable, length=None, *, collect_to=tuple):
     '''
     Return successive `length`-permutations of items in the `iterable`.
 
@@ -157,7 +175,10 @@ def permutations(iterable, length=None):
     >>> tuple(permutations([0, 1, 2], length=2))
     ((0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1))
     '''
-    return itertools__permutations(iterable, r=length)
+    records = itertools__permutations(iterable, r=length)
+    if collect_to is not tuple:
+        records = builtin__map(collect_to, records)
+    return records
 
 
 @export_from_module
@@ -206,7 +227,7 @@ def process_in_groups(iterable, *, key=None, transformation=UNDEFINED, aggregato
 
 
 @export_from_module
-def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
+def sliding_window(iterable, *, size=1, step=1, allow_partial=False, collect_to=tuple):
     '''
     Sliding window (#docs_in_pictures, size=5, step=4)
     iterable:   a b c d e f g h i j k
@@ -228,7 +249,7 @@ def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
     :return:
     '''
     if step == size:
-        return chunks(iterable, size, allow_partial=allow_partial)
+        return chunks(iterable, size, allow_partial=allow_partial, collect_to=collect_to)
 
     # TODO: think about optimizing iteration in chunks
 
@@ -243,22 +264,22 @@ def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
         next_diff_piece = base__take_now(it, step)
         while len(next_diff_piece) == step:
             dq.extend(next_diff_piece)
-            yield tuple(dq)
+            yield collect_to(dq)
             next_diff_piece = base__take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
-            yield next_diff_piece
+            yield collect_to(next_diff_piece)
     else:  # step > size
         next_diff_piece = base__take_now(it, step)
         while len(next_diff_piece) == step:
-            yield next_diff_piece[-size:]
+            yield collect_to(next_diff_piece[-size:])
             next_diff_piece = base__take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
             idx_of_start = len(next_diff_piece) - (step - size)
-            yield next_diff_piece[idx_of_start:]
+            yield collect_to(next_diff_piece[idx_of_start:])
 
 
 @export_from_module
-def stagger(iterable, *, offsets=(-1, 0, 1), fillvalue=None, longest=False):
+def stagger(iterable, *, offsets=(-1, 0, 1), fillvalue=None, longest=False, collect_to=tuple):
     '''
     Yields tuples whose elements are offset from iterable.
     The amount by which the i-th item in each tuple is offset is given by the i-th item in `offsets`.
@@ -282,5 +303,5 @@ def stagger(iterable, *, offsets=(-1, 0, 1), fillvalue=None, longest=False):
     :return:
     '''
     copies = itertools__tee(iterable, len(offsets))
-    return merging__zip_offset(*copies, offsets=offsets, fillvalue=fillvalue, longest=longest)
+    return merging__zip_offset(*copies, offsets=offsets, fillvalue=fillvalue, longest=longest, collect_to=collect_to)
 

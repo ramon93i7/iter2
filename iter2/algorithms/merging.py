@@ -7,6 +7,7 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
+builtin__map = map
 builtin__zip = zip
 
 itertools__chain = itertools.chain
@@ -125,7 +126,7 @@ def zip_longest(*iterables, fillvalue=None):
 
 
 @export_from_module
-def zip_offset(*iterables, offsets, fillvalue=None, longest=False):
+def zip_offset(*iterables, offsets, fillvalue=None, longest=False, collect_to=tuple):
     '''
     `zip` the input `iterables` together, but offset the i-th iterable by the i-th item in `offsets`.
 
@@ -161,7 +162,12 @@ def zip_offset(*iterables, offsets, fillvalue=None, longest=False):
             add_to_staggered(it)
 
     if longest:
-        return itertools__zip_longest(*staggered, fillvalue=fillvalue)
+        result = itertools__zip_longest(*staggered, fillvalue=fillvalue)
     else:
-        return builtin__zip(*staggered)
+        result = builtin__zip(*staggered)
+
+    if collect_to is not tuple:
+        result = builtin__map(collect_to, result)
+
+    return result
 
