@@ -11,7 +11,7 @@ builtin__map = map
 
 
 @export_from_module
-def all(iterable, predicate):
+def all(iterable, predicate) -> bool:
     '''
     Checks if `predicate` is True on every item in `iterator`
 
@@ -29,7 +29,7 @@ def all(iterable, predicate):
 
 
 @export_from_module
-def any(iterable, predicate):
+def any(iterable, predicate) -> bool:
     '''
     Checks if `predicate` is True on at least one item in `iterator`
 
@@ -43,11 +43,12 @@ def any(iterable, predicate):
     >>> any([1, 2, 3], lambda x: x % 2 == 0)
     True
     '''
+    # faster than `next(filter(predicate, iterable), False) and True`
     return builtin__any(builtin__map(predicate, iterable))
 
 
 @export_from_module
-def none(iterable, predicate):
+def none(iterable, predicate) -> bool:
     '''
     Checks if `predicate` is False on every item in `iterator`
 
@@ -61,5 +62,5 @@ def none(iterable, predicate):
     >>> none([1, 2, 3], lambda x: x % 2 == 0)
     False
     '''
-    return not builtin__any(builtin__map(predicate, iterable))
+    return not any(iterable, predicate)
 
