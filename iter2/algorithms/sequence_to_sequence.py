@@ -12,28 +12,28 @@ export_from_module, __all__ = define_module_exporter()
 
 
 # Aliases
-builtin_enumerate = enumerate
-builtin_filter = filter
-builtin_map = map
-builtin_slice = slice
-builtin_zip = zip
+builtin__enumerate = enumerate
+builtin__filter = filter
+builtin__map = map
+builtin__slice = slice
+builtin__zip = zip
 
-itertools_accumulate = itertools.accumulate
-itertools_chain = itertools.chain
-itertools_chain_from_iterable = itertools.chain.from_iterable
-itertools_cycle = itertools.cycle
-itertools_dropwhile = itertools.dropwhile
-itertools_filterfalse = itertools.filterfalse
-itertools_groupby = itertools.groupby
-itertools_islice = itertools.islice
-itertools_starmap = itertools.starmap
-itertools_takewhile = itertools.takewhile
-itertools_tee = itertools.tee
+itertools__accumulate = itertools.accumulate
+itertools__chain = itertools.chain
+itertools__chain_from_iterable = itertools.chain.from_iterable
+itertools__cycle = itertools.cycle
+itertools__dropwhile = itertools.dropwhile
+itertools__filterfalse = itertools.filterfalse
+itertools__groupby = itertools.groupby
+itertools__islice = itertools.islice
+itertools__starmap = itertools.starmap
+itertools__takewhile = itertools.takewhile
+itertools__tee = itertools.tee
 
-collections_deque = collections.deque
-contextlib_suppress = contextlib.suppress
+collections__deque = collections.deque
+contextlib__suppress = contextlib.suppress
 
-s2g_chunks = sequence_to_groups.chunks
+s2g__chunks = sequence_to_groups.chunks
 
 
 @export_from_module
@@ -54,13 +54,13 @@ def accumulate(iterable, func=None, *, initial=None):
     (1, 2, 6)
     '''
     if initial is not None:
-        it = itertools_chain((initial,), iterable)
+        it = itertools__chain((initial,), iterable)
     else:
         it = iterable
     if func is None:
-        return itertools_accumulate(it)
+        return itertools__accumulate(it)
     else:
-        return itertools_accumulate(it, func)
+        return itertools__accumulate(it, func)
 
 
 @export_from_module
@@ -100,7 +100,7 @@ def add_side_effect(iterable, func, *, chunk_size=None, before=None, after=None)
                 func(item)
                 yield item
         else:
-            for chunk in s2g_chunks(iterable, chunk_size, allow_partial=True):
+            for chunk in s2g__chunks(iterable, chunk_size, allow_partial=True):
                 func(chunk)
                 yield from chunk
     finally:
@@ -125,9 +125,9 @@ def consume(iterable, number=None):
     '''
     iterable = iter(iterable)  # it can look like iterable but it's not (e.g. range(10))
     if number is None:
-        collections_deque(iterable, maxlen=0)  # fastest full consume ever
+        collections__deque(iterable, maxlen=0)  # fastest full consume ever
     else:
-        next(itertools_islice(iterable, number, number), None)
+        next(itertools__islice(iterable, number, number), None)
     return iterable
 
 
@@ -146,10 +146,10 @@ def cycle(iterable, *, number=None):
     (0, 1, 0, 1)
     '''
     if number is None:
-        return itertools_cycle(iterable)
+        return itertools__cycle(iterable)
     else:
         # TODO: think about (micro)optimization
-        return itertools_chain_from_iterable(itertools_tee(iterable, number))
+        return itertools__chain_from_iterable(itertools__tee(iterable, number))
 
 
 @export_from_module
@@ -164,7 +164,7 @@ def dedup(iterable):
     >>> ''.join(dedup('011011110011'))
     '010101'
     '''
-    for val, sub_iter in itertools_groupby(iterable):
+    for val, sub_iter in itertools__groupby(iterable):
         yield val
         consume(sub_iter)
 
@@ -188,13 +188,13 @@ def difference(iterable, func=operator.sub, *, initial=None):
 
     '''
     if initial is not None:
-        it = itertools_chain((initial,), iterable)
+        it = itertools__chain((initial,), iterable)
     else:
         it = iterable
-    a, b = itertools_tee(it)
+    a, b = itertools__tee(it)
     try:
         item = next(b)
-        return itertools_chain((item,), builtin_map(lambda x: func(x[1], x[0]), builtin_zip(a, b)))
+        return itertools__chain((item,), builtin__map(lambda x: func(x[1], x[0]), builtin__zip(a, b)))
     except StopIteration:
         return iter(())
 
@@ -212,7 +212,7 @@ def drop(iterator, number=1):
     >>> tuple(drop(range(10), 8))
     (8, 9)
     '''
-    return itertools_islice(iterator, number, None)
+    return itertools__islice(iterator, number, None)
 
 
 @export_from_module
@@ -228,7 +228,7 @@ def drop_while(iterator, predicate):
     >>> tuple(drop_while('aaaaAAAA'), str.islower)
     ('A', 'A', 'A', 'A')
     '''
-    return itertools_dropwhile(predicate, iterator)
+    return itertools__dropwhile(predicate, iterator)
 
 
 @export_from_module
@@ -244,7 +244,7 @@ def enumerate(iterable, *, count_from=0):
     >>> tuple(enumerate('ab'))
     ((0, 'a'), (1, 'b'))
     '''
-    return builtin_enumerate(iterable, count_from)
+    return builtin__enumerate(iterable, count_from)
 
 
 @export_from_module
@@ -265,9 +265,9 @@ def filter(iterable, predicate, *, inverse=False):
     ('a', 'a')
     '''
     if inverse:
-        func = itertools_filterfalse
+        func = itertools__filterfalse
     else:
-        func = builtin_filter
+        func = builtin__filter
     return func(predicate, iterable)
 
 
@@ -304,7 +304,7 @@ def flatmap(iterable, func):
     >>> tuple(flatmap(['one two', 'three four', 'five'], str.split))
     ('one', 'two', 'three', 'four', 'five')
     '''
-    return itertools_chain.from_iterable(builtin_map(func, iterable))
+    return itertools__chain.from_iterable(builtin__map(func, iterable))
 
 
 @export_from_module
@@ -319,7 +319,7 @@ def flatten(iterable):
     >>> tuple(flatten(((1, 2), (3,))))
     (1, 2, 3)
     '''
-    return itertools_chain.from_iterable(iterable)
+    return itertools__chain.from_iterable(iterable)
 
 
 @export_from_module
@@ -337,7 +337,7 @@ def intersperse(iterable, item):
     '''
     # TODO: think about better solution
     it = iter(iterable)
-    with contextlib_suppress(StopIteration):
+    with contextlib__suppress(StopIteration):
         yield next(it)
         for elem in it:
             yield item
@@ -357,7 +357,7 @@ def map(iterable, func):
     >>> tuple(map('abc', str.upper))
     ('A', 'B', 'C')
     '''
-    return builtin_map(func, iterable)
+    return builtin__map(func, iterable)
 
 
 @export_from_module
@@ -373,7 +373,7 @@ def skip_while(iterable, predicate):
 
 
 @export_from_module
-@alias_for(itertools_islice)
+@alias_for(itertools__islice)
 def slice(iterable, *args):
     # TODO: make it work for all variants of `start`, `stop`, `step`, e.g. negative ones. See more-itertools.
     # Note: don't forget to remove @alias_for
@@ -394,7 +394,7 @@ def starmap(iterable, func):
     >>> tuple(starmap(('ab', 'ac', 'za'), lambda f, s: f > s))
     (False, False, True)
     '''
-    return itertools_starmap(func, iterable)
+    return itertools__starmap(func, iterable)
 
 
 @export_from_module
@@ -410,7 +410,7 @@ def step(iterable, k=1):
     >>> tuple(step('abcdef', 3))
     ('a', 'd')
     '''
-    return itertools_islice(iterable, None, None, k)
+    return itertools__islice(iterable, None, None, k)
 
 
 @export_from_module
@@ -427,7 +427,7 @@ def take(iterable, number=1):
     >>> tuple(take(range(100000000), 3))
     (0, 1, 2)
     '''
-    return itertools_islice(iterable, number)
+    return itertools__islice(iterable, number)
 
 
 @export_from_module
@@ -443,7 +443,7 @@ def take_now(iterable, number=1):
     >>> take_now(range(1000000000), 3)
     (0, 1, 2)
     '''
-    return tuple(itertools_islice(iterable, number))
+    return tuple(itertools__islice(iterable, number))
 
 
 @export_from_module
@@ -459,7 +459,7 @@ def take_last(iterable, number=1):
     >>> take_last('abcdef', 3)
     ('d', 'e', 'f')
     '''
-    return tuple(collections_deque(iterable, maxlen=number))
+    return tuple(collections__deque(iterable, maxlen=number))
 
 
 @export_from_module
@@ -477,5 +477,5 @@ def take_while(iterable, predicate):
     >>> it = iter('abcDef'); tuple(take_while(it, str.islower)), tuple(it)
     (('a', 'b', 'c'), ('e', 'f'))
     '''
-    return itertools_takewhile(predicate, iterable)
+    return itertools__takewhile(predicate, iterable)
 

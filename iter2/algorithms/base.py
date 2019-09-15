@@ -7,7 +7,7 @@ export_from_module, __all__ = define_module_exporter()
 
 
 # Aliases
-itertools_islice = itertools.islice
+itertools__islice = itertools.islice
 
 
 @export_from_module
@@ -23,5 +23,5 @@ def take_now(iterable, number=1):
     >>> take_now(range(1000000000), 3)
     (0, 1, 2)
     '''
-    return tuple(itertools_islice(iterable, number))
+    return tuple(itertools__islice(iterable, number))
 

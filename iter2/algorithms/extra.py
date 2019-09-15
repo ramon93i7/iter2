@@ -9,20 +9,20 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_map = map
-builtin_sorted = sorted
-builtin_zip = zip
+builtin__map = map
+builtin__sorted = sorted
+builtin__zip = zip
 
 
-itertools_chain_from_iterable = itertools.chain.from_iterable
-itertools_product = itertools.product
+itertools__chain_from_iterable = itertools.chain.from_iterable
+itertools__product = itertools.product
 
-collections_Counter = collections.Counter
-operator_itemgetter = operator.itemgetter
+collections__Counter = collections.Counter
+operator__itemgetter = operator.itemgetter
 
 
 @export_from_module
-@alias_for(itertools_product)
+@alias_for(itertools__product)
 def cartesian_product(*iterables, repeat=1):
     '''
     Builds cartesian product from iterables. Alias for itertools::product.
@@ -50,17 +50,17 @@ def sort_together(*iterables, key_list=(0,), key_func=None, reverse=False):
     ((2, 4, 1, 3, 5), ('b', 'd', 'a', 'c', 'e'))
     '''
     if key_func is None:
-        key = operator_itemgetter(*key_list)
+        key = operator__itemgetter(*key_list)
     else:
         if len(key_list) == 1:
             idx = key_list[0]
             key = lambda item: key_func(item[idx])
         else:
-            base_key = operator_itemgetter(*key_list)
+            base_key = operator__itemgetter(*key_list)
             key = lambda item: key_func(*base_key(item))
-    return builtin_zip(
-        *builtin_sorted(
-            builtin_zip(*iterables),
+    return builtin__zip(
+        *builtin__sorted(
+            builtin__zip(*iterables),
             key=key,
             reverse=reverse
         )
@@ -79,8 +79,8 @@ def unique_to_each(*iterables):
     >>> tuple(unique_to_each((1, 2, 3), (3, 4, 5), (5, 6, 7)))
     ((1,), (4,), (7,))
     '''
-    unique_by_iterable = tuple(builtin_map(frozenset, iterables))
-    counted = collections_Counter(itertools_chain_from_iterable(unique_by_iterable))
+    unique_by_iterable = tuple(builtin__map(frozenset, iterables))
+    counted = collections__Counter(itertools__chain_from_iterable(unique_by_iterable))
     unique_to_each = frozenset(item for item, count in counted.items() if count == 1)
     return (
         tuple(unique_to_each & it)

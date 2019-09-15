@@ -5,9 +5,9 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_all = all
-builtin_any = any
-builtin_map = map
+builtin__all = all
+builtin__any = any
+builtin__map = map
 
 
 @export_from_module
@@ -25,7 +25,7 @@ def all(iterable, predicate):
     >>> all([1, 2, 3], lambda x: x % 2 == 0)
     False
     '''
-    return builtin_all(builtin_map(predicate, iterable))
+    return builtin__all(builtin__map(predicate, iterable))
 
 
 @export_from_module
@@ -43,7 +43,7 @@ def any(iterable, predicate):
     >>> any([1, 2, 3], lambda x: x % 2 == 0)
     True
     '''
-    return builtin_any(builtin_map(predicate, iterable))
+    return builtin__any(builtin__map(predicate, iterable))
 
 
 @export_from_module
@@ -61,5 +61,5 @@ def none(iterable, predicate):
     >>> none([1, 2, 3], lambda x: x % 2 == 0)
     False
     '''
-    return not builtin_any(builtin_map(predicate, iterable))
+    return not builtin__any(builtin__map(predicate, iterable))
 

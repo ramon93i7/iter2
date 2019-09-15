@@ -8,12 +8,12 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_sum = sum
-builtin_max = max
-builtin_min = min
+builtin__sum = sum
+builtin__max = max
+builtin__min = min
 
-functools_reduce = functools.reduce
-operator_mul = operator.mul
+functools__reduce = functools.reduce
+operator__mul = operator.mul
 
 
 @export_from_module
@@ -28,7 +28,7 @@ def count(iterable):
     >>> count([1, 2, 3])
     3
     '''
-    return builtin_sum(1 for _ in iterable)
+    return builtin__sum(1 for _ in iterable)
 
 
 @export_from_module
@@ -48,9 +48,9 @@ def fold(iterable, func, *, initial=None):
     120
     '''
     if initial is None:
-        return functools_reduce(func, iterable)
+        return functools__reduce(func, iterable)
     else:
-        return functools_reduce(func, iterable, initial)
+        return functools__reduce(func, iterable, initial)
 
 
 @export_from_module
@@ -90,9 +90,9 @@ def max(iterable, *, default=None, key=None):
     'nothing'
     '''
     if key is None:
-        return builtin_max(iterable, default=default)
+        return builtin__max(iterable, default=default)
     else:
-        return builtin_max(iterable, default=default, key=key)
+        return builtin__max(iterable, default=default, key=key)
 
 
 @export_from_module
@@ -115,9 +115,9 @@ def min(iterator, *, default=None, key=None):
     'nothing'
     '''
     if key is None:
-        return builtin_min(iterator, default=default)
+        return builtin__min(iterator, default=default)
     else:
-        return builtin_min(iterator, default=default, key=key)
+        return builtin__min(iterator, default=default, key=key)
 
 
 @export_from_module
@@ -188,7 +188,7 @@ def product(iterable):
     >>> product([1, 2, 3, 4, 5])
     120
     '''
-    return functools_reduce(operator_mul, iterable)
+    return functools__reduce(operator__mul, iterable)
 
 
 @export_from_module
@@ -209,4 +209,4 @@ def sum(iterable):
     >>> sum([1, 2, 3, 4, 5])
     15
     '''
-    return builtin_sum(iterable)
+    return builtin__sum(iterable)

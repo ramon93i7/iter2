@@ -7,18 +7,18 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_zip = zip
+builtin__zip = zip
 
-itertools_chain = itertools.chain
-itertools_chain_from_iterable = itertools.chain.from_iterable
-itertools_cycle = itertools.cycle
-itertools_islice = itertools.islice
-itertools_repeat = itertools.repeat
-itertools_zip_longest = itertools.zip_longest
+itertools__chain = itertools.chain
+itertools__chain_from_iterable = itertools.chain.from_iterable
+itertools__cycle = itertools.cycle
+itertools__islice = itertools.islice
+itertools__repeat = itertools.repeat
+itertools__zip_longest = itertools.zip_longest
 
 
 @export_from_module
-@alias_for(itertools_chain)
+@alias_for(itertools__chain)
 def chain(*iterables):
     '''
     Returns a new iterable yielding items from `iterables`, iterable by iterable.
@@ -36,7 +36,7 @@ def chain(*iterables):
 
 
 @export_from_module
-@alias_for(itertools_chain_from_iterable)
+@alias_for(itertools__chain_from_iterable)
 def chain_from_iterable(iterables_in_iterable):
     '''
     Returns a new iterable yielding items from iterables, iterable by iterable.
@@ -68,7 +68,7 @@ def interleave(*iterables):
     MISSING_MARK = object()  # truly unique value
     return (
         item
-        for item in itertools_chain_from_iterable(itertools_zip_longest(*iterables, fillvalue=MISSING_MARK))
+        for item in itertools__chain_from_iterable(itertools__zip_longest(*iterables, fillvalue=MISSING_MARK))
         if item is not MISSING_MARK
     )
 
@@ -86,7 +86,7 @@ def interleave_shortest(*iterables):
     [1, 'a', 2, 'b']
     '''
     # TODO: think about better solution
-    return itertools_chain_from_iterable(builtin_zip(*iterables))
+    return itertools__chain_from_iterable(builtin__zip(*iterables))
 
 
 @export_from_module
@@ -103,7 +103,7 @@ def prepend(iterator, another_iterator):
     >>> tuple(prepend([4, 5, 6], [1, 2, 3]))
     (1, 2, 3, 4, 5, 6)
     '''
-    return itertools_chain(another_iterator, iterator)
+    return itertools__chain(another_iterator, iterator)
 
 
 @export_from_module
@@ -113,13 +113,13 @@ def roundrobin(*iterables):
 
 
 @export_from_module
-@alias_for(builtin_zip)
+@alias_for(builtin__zip)
 def zip(*iterables):
     pass
 
 
 @export_from_module
-@alias_for(itertools_zip_longest)
+@alias_for(itertools__zip_longest)
 def zip_longest(*iterables, fillvalue=None):
     pass
 
@@ -147,21 +147,21 @@ def zip_offset(*iterables, offsets, fillvalue=None, longest=False):
 
     staggered = []
     add_to_staggered = staggered.append
-    for it, n in builtin_zip(iterables, offsets):
+    for it, n in builtin__zip(iterables, offsets):
         if n < 0:
             add_to_staggered(
-                itertools_chain(
-                    itertools_repeat(fillvalue, -n),
+                itertools__chain(
+                    itertools__repeat(fillvalue, -n),
                     it
                 )
             )
         elif n > 0:
-            add_to_staggered(itertools_islice(it, n, None))
+            add_to_staggered(itertools__islice(it, n, None))
         else:
             add_to_staggered(it)
 
     if longest:
-        return itertools_zip_longest(*staggered, fillvalue=fillvalue)
+        return itertools__zip_longest(*staggered, fillvalue=fillvalue)
     else:
-        return builtin_zip(*staggered)
+        return builtin__zip(*staggered)
 

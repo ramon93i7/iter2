@@ -9,15 +9,15 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_enumerate = enumerate
-builtin_filter = filter
-builtin_map = map
+builtin__enumerate = enumerate
+builtin__filter = filter
+builtin__map = map
 
-itertools_filterfalse = itertools.filterfalse
-itertools_islice = itertools.islice
-itertools_tee = itertools.tee
+itertools__filterfalse = itertools.filterfalse
+itertools__islice = itertools.islice
+itertools__tee = itertools.tee
 
-operator_itemgetter = operator.itemgetter
+operator__itemgetter = operator.itemgetter
 
 
 @export_from_module
@@ -33,10 +33,10 @@ def distribute(iterable, n):
     >>> tuple(map(tuple, distribute([1, 2, 3, 4, 5], 3)))
     ((1, 4), (2, 5), (3,))
     '''
-    copies = itertools_tee(iterable, n)
+    copies = itertools__tee(iterable, n)
     return tuple(
-        itertools_islice(copy, idx, None, n)
-        for idx, copy in builtin_enumerate(copies)
+        itertools__islice(copy, idx, None, n)
+        for idx, copy in builtin__enumerate(copies)
     )
 
 
@@ -53,9 +53,9 @@ def partition(iterable, predicate):
     >>> tuple(map(tuple, partition('AbC', str.isupper)))
     (('A', 'C'), ('b',))
     '''
-    copy1, copy2 = itertools_tee(iterable, 2)
-    positive = builtin_filter(predicate, copy1)
-    negative = itertools_filterfalse(predicate, copy2)
+    copy1, copy2 = itertools__tee(iterable, 2)
+    positive = builtin__filter(predicate, copy1)
+    negative = itertools__filterfalse(predicate, copy2)
     return positive, negative
 
 
@@ -162,12 +162,12 @@ def unzip(iterable, arity=2):
     if not isinstance(arity, int) or arity < 2:
         raise TypeError('`arity` must be integer greater or equal to 2')
     if arity == 2:
-        copy1, copy2 = itertools_tee(iterable, 2)
+        copy1, copy2 = itertools__tee(iterable, 2)
         first_flow = (first for first, _ in copy1)
         second_flow = (second for _, second in copy2)
         return first_flow, second_flow
     else:
         return tuple(
-            (builtin_map(operator_itemgetter(idx), copy)
-             for idx, copy in builtin_enumerate(itertools_tee(iterable, arity)))
+            (builtin__map(operator__itemgetter(idx), copy)
+             for idx, copy in builtin__enumerate(itertools__tee(iterable, arity)))
         )

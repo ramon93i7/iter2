@@ -11,22 +11,22 @@ export_from_module, __all__ = define_module_exporter()  # setup export
 
 
 # Aliases
-builtin_enumerate = enumerate
-builtin_filter = filter
-builtin_map = map
-builtin_zip = zip
+builtin__enumerate = enumerate
+builtin__filter = filter
+builtin__map = map
+builtin__zip = zip
 
-itertools_groupby = itertools.groupby
-itertools_islice = itertools.islice
-itertools_permutations = itertools.permutations
-itertools_tee = itertools.tee
-itertools_zip_longest = itertools.zip_longest
+itertools__groupby = itertools.groupby
+itertools__islice = itertools.islice
+itertools__permutations = itertools.permutations
+itertools__tee = itertools.tee
+itertools__zip_longest = itertools.zip_longest
 
-collections_deque = collections.deque
-operator_itemgetter = operator.itemgetter
+collections__deque = collections.deque
+operator__itemgetter = operator.itemgetter
 
-base_take_now = base.take_now
-merging_zip_offset = merging.zip_offset
+base__take_now = base.take_now
+merging__zip_offset = merging.zip_offset
 
 
 @export_from_module
@@ -47,13 +47,13 @@ def chunks(iterable, size, *, allow_partial=False):
     '''
     if allow_partial is False:
         it_copies = (iter(iterable),) * size
-        yield from builtin_zip(*it_copies)
+        yield from builtin__zip(*it_copies)
     else:
         it = iter(iterable)
-        next_diff_piece = base_take_now(it, size)
+        next_diff_piece = base__take_now(it, size)
         while len(next_diff_piece) == size:
             yield next_diff_piece
-            next_diff_piece = base_take_now(it, size)
+            next_diff_piece = base__take_now(it, size)
         if len(next_diff_piece) > 0:
             yield next_diff_piece
 
@@ -75,7 +75,7 @@ def chunks_with_padding(iterable, size, *, fillvalue=None):
     ((1, 2), (3, 100500))
     '''
     it_copies = (iter(iterable),) * size
-    return itertools_zip_longest(*it_copies, fillvalue=fillvalue)
+    return itertools__zip_longest(*it_copies, fillvalue=fillvalue)
 
 
 @export_from_module
@@ -98,8 +98,8 @@ def consecutive_groups(iterable, *, ordering=None):
     else:
         key = lambda idx, item: idx - ordering(item)
     return (
-        builtin_map(operator_itemgetter(1), sub_iter)
-        for _, sub_iter in itertools_groupby(builtin_enumerate(iterable), key=(lambda item: key(*item)))
+        builtin__map(operator__itemgetter(1), sub_iter)
+        for _, sub_iter in itertools__groupby(builtin__enumerate(iterable), key=(lambda item: key(*item)))
     )
 
 
@@ -120,7 +120,7 @@ def group_by(iterable, *, key=None):
     (0, (2, 2))
     (1, (3, 3, 3))
     '''
-    return itertools_groupby(iterable, key=key)
+    return itertools__groupby(iterable, key=key)
 
 
 
@@ -136,9 +136,9 @@ def pairwise(iterable):
     >>> tuple(pairwise([1, 2, 3]))
     ((1, 2), (2, 3))
     '''
-    copy1, copy2 = itertools_tee(iterable, 2)
+    copy1, copy2 = itertools__tee(iterable, 2)
     next(copy2, None)
-    return builtin_zip(copy1, copy2)
+    return builtin__zip(copy1, copy2)
 
 
 @export_from_module
@@ -154,7 +154,7 @@ def permutations(iterable, length=None):
     >>> tuple(permutations([0, 1, 2], length=2))
     ((0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1))
     '''
-    return itertools_permutations(iterable, r=length)
+    return itertools__permutations(iterable, r=length)
 
 
 @export_from_module
@@ -188,10 +188,10 @@ def process_in_groups(iterable, *, key=None, transformation=None, aggregator=Non
     (2, 4)
     (3, 9)
     '''
-    result = itertools_groupby(iterable, key=key)
+    result = itertools__groupby(iterable, key=key)
     if transformation is not None:
         result = (
-            (val, builtin_map(transformation, sub_iter))
+            (val, builtin__map(transformation, sub_iter))
             for val, sub_iter in result
         )
     if aggregator is not None:
@@ -231,25 +231,25 @@ def sliding_window(iterable, *, size=1, step=1, allow_partial=False):
     # TODO: think about optimizing iteration in chunks
 
     it = iter(iterable)
-    first_piece = base_take_now(it, size)
+    first_piece = base__take_now(it, size)
     if len(first_piece) != size and not allow_partial:
         return  # not enough elements
     yield first_piece
 
     if step < size:
-        dq = collections_deque(first_piece, maxlen=size)
-        next_diff_piece = base_take_now(it, step)
+        dq = collections__deque(first_piece, maxlen=size)
+        next_diff_piece = base__take_now(it, step)
         while len(next_diff_piece) == step:
             dq.extend(next_diff_piece)
             yield tuple(dq)
-            next_diff_piece = base_take_now(it, step)
+            next_diff_piece = base__take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
             yield next_diff_piece
     else:  # step > size
-        next_diff_piece = base_take_now(it, step)
+        next_diff_piece = base__take_now(it, step)
         while len(next_diff_piece) == step:
             yield next_diff_piece[-size:]
-            next_diff_piece = base_take_now(it, step)
+            next_diff_piece = base__take_now(it, step)
         if allow_partial and len(next_diff_piece) > 0:
             idx_of_start = len(next_diff_piece) - (step - size)
             yield next_diff_piece[idx_of_start:]
@@ -279,6 +279,6 @@ def stagger(iterable, *, offsets=(-1, 0, 1), fillvalue=None, longest=False):
     :param longest:
     :return:
     '''
-    copies = itertools_tee(iterable, len(offsets))
-    return merging_zip_offset(*copies, offsets=offsets, fillvalue=fillvalue, longest=longest)
+    copies = itertools__tee(iterable, len(offsets))
+    return merging__zip_offset(*copies, offsets=offsets, fillvalue=fillvalue, longest=longest)
 

@@ -4,8 +4,8 @@ from iter2.utils import define_module_exporter
 export_from_module, __all__ = define_module_exporter()  # setup export
 
 
-builtin_enumerate = enumerate
-builtin_filter = filter
+builtin__enumerate = enumerate
+builtin__filter = filter
 
 
 @export_from_module
@@ -21,7 +21,7 @@ def find(iterable, predicate):
     >>> find([1, 2, 3], lambda x: x % 2 == 0)
     2
     '''
-    return next(builtin_filter(predicate, iterable))
+    return next(builtin__filter(predicate, iterable))
 
 
 @export_from_module
@@ -46,13 +46,13 @@ def locate(iterable, predicate, *, count_from=0, with_items=False):
     if with_items:
         return (
             (idx, item)
-            for idx, item in builtin_enumerate(iterable, count_from)
+            for idx, item in builtin__enumerate(iterable, count_from)
             if predicate(item)
         )
     else:
         return (
             idx
-            for idx, item in builtin_enumerate(iterable, count_from)
+            for idx, item in builtin__enumerate(iterable, count_from)
             if predicate(item)
         )
 
