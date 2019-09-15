@@ -287,6 +287,7 @@ def filter_none(iterable):
     >>> tuple(filter_none([1, None, 2, None]))
     (1, 2)
     '''
+    # for-comprehension is faster than `filter(lambda x: x is not None, iterable)`
     return (
         val
         for val in iterable
@@ -343,6 +344,7 @@ def intersperse(iterable, item):
     it = iter(iterable)
     with contextlib__suppress(StopIteration):
         yield next(it)
+        # Next cycle is faster than `chain_from_iterable(zip(repeat(item), it))`
         for elem in it:
             yield item
             yield elem
@@ -435,9 +437,9 @@ def take(iterable, number=1):
 
 
 @export_from_module
-def take_now(iterable, number=1):
+def take_now(iterable, number=1, *, collection=tuple):
     '''
-    Returns a tuple with at *most* `number` first items from `iterable`.
+    Returns a `collection` with at *most* `number` first items from `iterable`.
 
     :param iterable:
     :param number:
@@ -447,11 +449,11 @@ def take_now(iterable, number=1):
     >>> take_now(range(1000000000), 3)
     (0, 1, 2)
     '''
-    return tuple(itertools__islice(iterable, number))
+    return collection(itertools__islice(iterable, number))
 
 
 @export_from_module
-def take_last(iterable, number=1):
+def take_last(iterable, number=1, *, collection=tuple):
     '''
     Returns a tuple with at *most* `number` last items from `iterable`.
 
@@ -463,7 +465,7 @@ def take_last(iterable, number=1):
     >>> take_last('abcdef', 3)
     ('d', 'e', 'f')
     '''
-    return tuple(collections__deque(iterable, maxlen=number))
+    return collection(collections__deque(iterable, maxlen=number))
 
 
 @export_from_module

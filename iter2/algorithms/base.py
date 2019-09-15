@@ -11,7 +11,7 @@ itertools__islice = itertools.islice
 
 
 @export_from_module
-def take_now(iterable, number=1):
+def take_now(iterable, number=1, *, collection=tuple):
     '''
     Returns a tuple with at *most* `number` first items from `iterable`.
 
@@ -23,5 +23,5 @@ def take_now(iterable, number=1):
     >>> take_now(range(1000000000), 3)
     (0, 1, 2)
     '''
-    return tuple(itertools__islice(iterable, number))
+    return collection(itertools__islice(iterable, number))
 
