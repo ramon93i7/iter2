@@ -437,9 +437,9 @@ def take(iterable, number=1):
 
 
 @export_from_module
-def take_now(iterable, number=1, *, collection=tuple):
+def take_now(iterable, number=1, *, collect_to=tuple):
     '''
-    Returns a `collection` with at *most* `number` first items from `iterable`.
+    Returns a `collect_to` with at *most* `number` first items from `iterable`.
 
     :param iterable:
     :param number:
@@ -449,11 +449,11 @@ def take_now(iterable, number=1, *, collection=tuple):
     >>> take_now(range(1000000000), 3)
     (0, 1, 2)
     '''
-    return collection(itertools__islice(iterable, number))
+    return collect_to(itertools__islice(iterable, number))
 
 
 @export_from_module
-def take_last(iterable, number=1, *, collection=tuple):
+def take_last(iterable, number=1, *, collect_to=tuple):
     '''
     Returns a tuple with at *most* `number` last items from `iterable`.
 
@@ -465,7 +465,7 @@ def take_last(iterable, number=1, *, collection=tuple):
     >>> take_last('abcdef', 3)
     ('d', 'e', 'f')
     '''
-    return collection(collections__deque(iterable, maxlen=number))
+    return collect_to(collections__deque(iterable, maxlen=number))
 
 
 @export_from_module
