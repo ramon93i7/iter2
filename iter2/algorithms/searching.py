@@ -8,8 +8,11 @@ builtin__enumerate = enumerate
 builtin__filter = filter
 
 
+UNDEFINED = object()
+
+
 @export_from_module
-def find(iterable, predicate):
+def find(iterable, predicate, *, default=UNDEFINED):
     '''
     Yields first occurrence of item for which `predicate` is True
 
@@ -22,7 +25,10 @@ def find(iterable, predicate):
     2
     '''
     # TODO: add `default value` for "missed" scenario
-    return next(builtin__filter(predicate, iterable))
+    if default is UNDEFINED:
+        return next(builtin__filter(predicate, iterable))
+    else:
+        return next(builtin__filter(predicate, iterable), default)
 
 
 @export_from_module
