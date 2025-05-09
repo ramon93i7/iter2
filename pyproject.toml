@@ -1,0 +1,39 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[project]
+name = "iter2"
+version = "2.0.1746745800"
+
+requires-python = ">= 3.12"
+
+description = "Rich iterator for Python 3"
+readme = "README.md"
+keywords = ["iterator"]
+
+
+license = "MIT"
+license-files = ["LICENSE"]
+
+authors = [
+    {name = "Roman Shemyakin", email = "ramon93i7@gmail.com"},
+]
+
+maintainers = [
+    {name = "Roman Shemyakin", email = "ramon93i7@gmail.com"},
+]
+
+
+[project.urls]
+GitHub = "https://github.com/ramon93i7/iter2"
+Repository = "https://github.com/ramon93i7/iter2.git"
+Changelog = "https://github.com/ramon93i7/iter2/blob/master/CHANGELOG.md"
+Issues = "https://github.com/ramon93i7/iter2/issues"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+hypothesis = "^6.100.2"
+ipython = "^8.24.0"
