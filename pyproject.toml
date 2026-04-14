@@ -34,6 +34,6 @@ Issues = "https://github.com/ramon93i7/iter2/issues"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.2.0"
+pytest = "^9.0.3"
 hypothesis = "^6.100.2"
 ipython = "^8.24.0"
